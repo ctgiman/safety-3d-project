@@ -3,22 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智慧工安教學系統</title>
+    <title>智慧工安互動教學系統</title>
     <style>
         :root { --primary: #3498db; --bg: #1a1a1a; --panel: rgba(30, 30, 30, 0.95); }
         body { margin: 0; font-family: 'Microsoft JhengHei', sans-serif; background: #000; color: white; overflow: hidden; }
         #container { position: relative; width: 100vw; height: 100vh; display: flex; }
 
+        /* 指引線畫布 */
+        #line-canvas {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 50;
+        }
+
         /* 左側：部位清單 */
-        #left-panel { position: absolute; left: 20px; top: 100px; width: 200px; z-index: 100; pointer-events: none; }
+        #left-panel { position: absolute; left: 20px; top: 100px; width: 220px; z-index: 100; pointer-events: none; }
         .part-item {
             pointer-events: auto; background: var(--panel); border-left: 4px solid var(--primary);
-            padding: 10px; margin-bottom: 8px; cursor: pointer; border-radius: 0 5px 5px 0;
-            transition: 0.3s; font-size: 14px;
+            padding: 12px; margin-bottom: 8px; cursor: pointer; border-radius: 0 5px 5px 0;
+            transition: 0.3s; font-size: 14px; box-shadow: 2px 2px 10px rgba(0,0,0,0.3);
         }
-        .part-item:hover { background: var(--primary); color: white; transform: translateX(5px); }
+        .part-item:hover { background: var(--primary); color: white; transform: translateX(8px); }
 
-        /* 右側：物件清單與分類 */
+        /* 右側：物件清單 */
         #right-panel {
             position: absolute; right: 0; top: 0; bottom: 0; width: 280px;
             background: var(--panel); border-left: 1px solid #444; padding: 20px;
@@ -32,59 +38,48 @@
         .model-btn:hover { background: #444; }
         .model-btn.active { background: var(--primary); font-weight: bold; }
 
-        /* 重置視角按鈕 */
         #reset-btn {
-            width: 100%; padding: 10px; background: #e67e22; color: white; border: none;
-            border-radius: 5px; cursor: pointer; font-weight: bold; margin-bottom: 20px;
+            width: 100%; padding: 12px; background: #e67e22; color: white; border: none;
+            border-radius: 5px; cursor: pointer; font-weight: bold; margin-bottom: 20px; transition: 0.3s;
         }
         #reset-btn:hover { background: #d35400; }
 
-        /* 下方：訊息顯示區 */
+        /* 3D 標籤 */
+        .annotation {
+            position: absolute; width: 26px; height: 26px;
+            background: #ff3d00; border: 2px solid #ffffff; border-radius: 50%;
+            color: white; font-weight: bold; text-align: center; line-height: 22px;
+            font-size: 12px; box-shadow: 0 0 15px rgba(255, 61, 0, 0.8);
+            cursor: pointer; z-index: 1000; pointer-events: auto;
+        }
+
+        /* 下方訊息視窗 */
         #message-box {
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            width: 500px; background: rgba(0,0,0,0.85); border: 2px solid var(--primary);
-            padding: 20px; border-radius: 15px; z-index: 200; display: none;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            width: 450px; background: rgba(0,0,0,0.9); border: 2px solid var(--primary);
+            padding: 20px; border-radius: 15px; z-index: 2000; display: none;
         }
 
-        /* 3D 標籤按鈕 */
-        .annotation {
-            position: absolute;
-            width: 35px; 
-            height: 35px;
-            background: #ff3d00; /* 更紅一點，更明顯 */
-            border: 3px solid #ffffff;
-            border-radius: 50%;
-            color: white;
-            font-weight: bold;
-            text-align: center;
-            line-height: 29px;
-            box-shadow: 0 0 20px rgba(255, 61, 0, 1); /* 強力發光 */
-            cursor: pointer;
-            z-index: 9999; /* 極高層級 */
-            pointer-events: auto;
-        }
-        .annotation:hover { background: #e74c3c; transform: scale(1.2); }
-
-        /* 開發者工具 */
         #debug-tool {
             position: absolute; bottom: 10px; left: 10px;
             background: rgba(0,0,0,0.9); border: 1px solid #00ff00; color: #00ff00;
-            padding: 10px; font-family: monospace; font-size: 12px; z-index: 300;
+            padding: 10px; font-family: monospace; font-size: 11px; z-index: 300;
         }
     </style>
 </head>
 <body>
 
     <div id="container">
+        <svg id="line-canvas"></svg>
+
         <div id="left-panel">
-            <div style="color:var(--primary); margin-bottom:10px; font-weight:bold;">檢查部位清單</div>
+            <div style="color:var(--primary); margin-bottom:12px; font-weight:bold; letter-spacing:1px;">部位檢查指引</div>
             <div id="parts-list"></div>
         </div>
 
         <div id="right-panel">
             <button id="reset-btn">🏠 重置視角 / 置中</button>
-            <h2 style="margin-top:0;">工安器材庫</h2>
+            <h2 style="margin:0 0 15px 0; font-size: 20px;">工安器材庫</h2>
             <div class="category-title">防護具類</div>
             <div id="cat-ppe"></div>
             <div class="category-title">消防器材類</div>
@@ -95,14 +90,14 @@
         <div id="labels-container"></div>
 
         <div id="message-box">
-            <button onclick="this.parentElement.style.display='none'" style="float:right; background:none; border:none; color:white; cursor:pointer;">✕</button>
+            <button onclick="this.parentElement.style.display='none'" style="float:right; background:none; border:none; color:white; cursor:pointer; font-size:20px;">✕</button>
             <h3 id="msg-title" style="margin-top:0; color:var(--primary);">標題</h3>
-            <p id="msg-content" style="line-height:1.6;"></p>
+            <p id="msg-content" style="line-height:1.6; margin-bottom:0;"></p>
         </div>
 
         <div id="debug-tool">
             <button onclick="this.parentElement.style.display='none'">關閉工具</button><br>
-            <strong>座標偵測器</strong><br>
+            <strong>座標偵測器</strong> (點擊模型獲取)<br>
             <span id="coord-output">x: -, y: -, z: -</span>
         </div>
     </div>
@@ -115,8 +110,9 @@
         import * as THREE from 'three';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { TWEEN } from 'https://unpkg.com/@tweenjs/tween.js@23.1.1/dist/tween.esm.js';
 
-        // 1. 資料庫 (已修正 pos 結構)
+        // 1. 資料庫
         const allData = [
             {
                 id: "helmet",
@@ -126,7 +122,7 @@
                 points: [
                     { title: "帽殼狀態", text: "檢查是否有龜裂或遭受撞擊之白化痕跡。", pos: { x: 0.007, y: 0.249, z: -0.028 } },
                     { title: "頤帶扣環", text: "確認扣環是否牢固，無斷裂痕跡。", pos: { x: 0.105, y: -0.101, z: -0.016 } },
-                    { title: "內襯", text: "檢查是否有龜裂。", pos: { pos: { x: -0.123, y: 0.161, z: -0.017 } } },
+                    { title: "內襯", text: "檢查緩衝材質是否老化、龜裂。", pos: { x: -0.123, y: 0.161, z: -0.017 } },
                     { title: "帽緣/帽沿", text: "確認無變形或缺損。", pos: { x: 0.007, y: 0.015, z: 0.207 } }
                 ]
             },
@@ -137,41 +133,63 @@
                 file: "./models/fireextinguisher.glb",
                 points: [
                     { title: "壓力錶指針", text: "指針必須位於綠色區塊。", pos: { x: -0.005, y: 0.208, z: 0.054 } },
-                    { title: "安全插梢", text: "確認插梢是否固定完好。", pos: { x: 0.031, y: 0.232, z: 0.022 } },
+                    { title: "安全插梢", text: "確認插梢是否固定完好，鉛封未脫落。", pos: { x: 0.031, y: 0.232, z: 0.022 } },
                     { title: "瓶身狀態", text: "檢查有無嚴重生鏽、腐蝕或變形。", pos: { x: 0.045, y: -0.005, z: 0.057 } },
-                    { title: "皮管與噴嘴", text: "檢查有無老化斷裂、阻塞或鬆脫現象。", pos: { x: -0.068, y: -0.067, z: -0.052 } }
+                    { title: "皮管與噴嘴", text: "檢查有無老化斷裂、阻塞現象。", pos: { x: -0.068, y: -0.067, z: -0.052 } }
                 ]
             }
         ];
 
-        // 2. 初始化
+        // 2. 初始化場景
         let loadedModel = null;
         const labelElements = [];
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x222222);
+        scene.background = new THREE.Color(0x111111);
 
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
         camera.position.set(0.8, 0.5, 0.8);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
         document.getElementById('canvas-wrapper').appendChild(renderer.domElement);
 
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
 
-        scene.add(new THREE.AmbientLight(0xffffff, 1.5));
-        const light = new THREE.DirectionalLight(0xffffff, 2);
-        light.position.set(2, 5, 2);
-        scene.add(light);
+        scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        dirLight.position.set(2, 5, 2);
+        scene.add(dirLight);
 
         const loader = new GLTFLoader();
 
-        function showMessage(title, text) {
+        // 自動導覽功能：相機平滑移動
+        function focusOnPoint(targetPos) {
+            const target = new THREE.Vector3(targetPos.x, targetPos.y, targetPos.z);
+            
+            // 計算相機新位置 (稍微靠近點)
+            const offset = new THREE.Vector3(0.3, 0.2, 0.3);
+            const newCamPos = target.clone().add(offset);
+
+            // 使用 TWEEN 製作平滑動畫
+            new TWEEN.Tween(camera.position)
+                .to({ x: newCamPos.x, y: newCamPos.y, z: newCamPos.z }, 1000)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .start();
+
+            new TWEEN.Tween(controls.target)
+                .to({ x: target.x, y: target.y, z: target.z }, 1000)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .start();
+        }
+
+        function showMessage(title, text, pos) {
             const box = document.getElementById('message-box');
             document.getElementById('msg-title').innerText = title;
             document.getElementById('msg-content').innerText = text;
             box.style.display = 'block';
+            if(pos) focusOnPoint(pos); // 點擊時觸發導覽
         }
 
         function loadObject(data) {
@@ -195,7 +213,7 @@
                     const item = document.createElement('div');
                     item.className = 'part-item';
                     item.innerText = `${i+1}. ${p.title}`;
-                    item.onclick = () => showMessage(p.title, p.text);
+                    item.onclick = () => showMessage(p.title, p.text, p.pos);
                     document.getElementById('parts-list').appendChild(item);
 
                     const label = document.createElement('div');
@@ -203,7 +221,7 @@
                     label.innerText = i + 1;
                     label.onclick = (e) => {
                         e.stopPropagation();
-                        showMessage(p.title, p.text);
+                        showMessage(p.title, p.text, p.pos);
                     };
                     document.getElementById('labels-container').appendChild(label);
                     labelElements.push({ div: label, pos: new THREE.Vector3(p.pos.x, p.pos.y, p.pos.z) });
@@ -211,7 +229,7 @@
             });
         }
 
-        // 初始化選單
+        // 初始化右側選單
         allData.forEach(obj => {
             const btn = document.createElement('button');
             btn.className = 'model-btn';
@@ -220,19 +238,19 @@
                 document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 loadObject(obj);
+                controls.reset();
             };
             document.getElementById('cat-' + obj.category).appendChild(btn);
         });
 
-        // 重置視角功能
         document.getElementById('reset-btn').onclick = () => {
-            controls.reset(); // 回到 OrbitControls 初始設定
-            camera.position.set(0.8, 0.5, 0.8);
-            controls.update();
+            new TWEEN.Tween(camera.position).to({ x: 0.8, y: 0.5, z: 0.8 }, 800).start();
+            new TWEEN.Tween(controls.target).to({ x: 0, y: 0, z: 0 }, 800).start();
         };
 
         document.querySelector('.model-btn').click();
 
+        // 座標偵測
         window.addEventListener('mousedown', (event) => {
             if (!loadedModel) return;
             const mouse = new THREE.Vector2(
@@ -253,21 +271,42 @@
 
         function animate() {
             requestAnimationFrame(animate);
+            TWEEN.update(); // 處理相機動畫
             controls.update();
             renderer.render(scene, camera);
     
+            const svg = document.getElementById('line-canvas');
+            svg.innerHTML = ''; 
+
             labelElements.forEach(item => {
-                const pos = item.pos.clone().project(camera);
-                // 修正計算公式，確保座標轉換正確
-                const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
-                const y = (-(pos.y) * 0.5 + 0.5) * window.innerHeight;
-        
-                item.div.style.left = `${x}px`;
-                item.div.style.top = `${y}px`;
+                const rawPos = item.pos.clone().project(camera);
+                
+                // A. 原始位置 (模型上的點)
+                const startX = (rawPos.x * 0.5 + 0.5) * window.innerWidth;
+                const startY = (-(rawPos.y) * 0.5 + 0.5) * window.innerHeight;
+                
+                // B. 標籤位置 (稍微偏移讓出空間)
+                const offsetX = 60; 
+                const offsetY = -60;
+                const endX = startX + offsetX;
+                const endY = startY + offsetY;
+
+                item.div.style.left = `${endX}px`;
+                item.div.style.top = `${endY}px`;
                 item.div.style.transform = `translate(-50%, -50%)`;
-        
-                // 先暫時關閉背面隱藏，確保標籤一定會出現
-                item.div.style.display = 'block'; 
+                item.div.style.display = (rawPos.z > 1) ? 'none' : 'block';
+
+                // 畫指引線
+                if (item.div.style.display === 'block') {
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', startX);
+                    line.setAttribute('y1', startY);
+                    line.setAttribute('x2', endX);
+                    line.setAttribute('y2', endY);
+                    line.setAttribute('stroke', 'rgba(255,255,255,0.4)');
+                    line.setAttribute('stroke-width', '1.5');
+                    svg.appendChild(line);
+                }
             });
         }
         animate();
@@ -280,5 +319,3 @@
     </script>
 </body>
 </html>
-
-
