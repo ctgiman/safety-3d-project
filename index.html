@@ -166,22 +166,33 @@
         const loader = new GLTFLoader();
 
         // 自動導覽功能：相機平滑移動
-        function focusOnPoint(targetPos) {
-        const target = new THREE.Vector3(targetPos.x, targetPos.y, targetPos.z);
-        const offset = new THREE.Vector3(0.3, 0.2, 0.3);
-        const newCamPos = target.clone().add(offset);
+      // 自動導覽功能：避免穿透模型的平滑移動
+function focusOnPoint(targetPos) {
+    const target = new THREE.Vector3(targetPos.x, targetPos.y, targetPos.z);
+    
+    // 1. 計算從中心到目標點的向量，並將其標準化 (代表該點的「方向」)
+    const direction = target.clone().normalize();
+    
+    // 2. 設定一個「安全平面」的距離 (例如 0.4 單位)，這能保證相機在模型外
+    const safetyDistance = 0.5; 
+    const newCamPos = direction.multiplyScalar(safetyDistance);
 
-        // 確保使用 TWEEN.Tween
-        new TWEEN.Tween(camera.position)
-            .to({ x: newCamPos.x, y: newCamPos.y, z: newCamPos.z }, 1000)
-            .easing(TWEEN.Easing.Quadratic.Out)
-            .start();
+    // 3. 執行相機移動動畫
+    new TWEEN.Tween(camera.position)
+        .to({ x: newCamPos.x, y: newCamPos.y, z: newCamPos.z }, 1200) // 稍微放慢一點點
+        .easing(TWEEN.Easing.Cubic.Out) // 使用更平滑的 Cubic 曲線
+        .onUpdate(() => {
+            // 在移動過程中，相機始終盯著目標，避免亂晃
+            camera.lookAt(target);
+        })
+        .start();
 
-        new TWEEN.Tween(controls.target)
-            .to({ x: target.x, y: target.y, z: target.z }, 1000)
-            .easing(TWEEN.Easing.Quadratic.Out)
-            .start();
-    }
+    // 4. 同時更新 OrbitControls 的中心點，讓後續手動旋轉是以該點為中心
+    new TWEEN.Tween(controls.target)
+        .to({ x: target.x, y: target.y, z: target.z }, 1000)
+        .easing(TWEEN.Easing.Quadratic.Out)
+        .start();
+}
         function showMessage(title, text, pos) {
             const box = document.getElementById('message-box');
             document.getElementById('msg-title').innerText = title;
@@ -317,4 +328,5 @@
     </script>
 </body>
 </html>
+
 
