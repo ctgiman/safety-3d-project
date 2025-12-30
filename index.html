@@ -65,57 +65,48 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
         // =========================================================
-        // ▼▼▼ 【這裡是用戶設定區 (菜單)】 請修改這裡！ ▼▼▼
+        // ▼▼▼ 【這裡是用戶設定區】 請修改這裡！ ▼▼▼
         // =========================================================
+        
+        // --- 設定檔 A：工程安全帽 (目前關閉中，想用這個請把下面註解解開，並把滅火器註解起來) ---
+        /
         const config = {
-            // 1. 你的模型檔名 (記得把檔案上傳到 models 資料夾)
             filePath: './models/model3.glb', 
-
-            // 2. 這裡設定模型的名字
             title: "工程安全帽 (測試版)",
-
-            // 3. 這裡設定所有的標籤點
             points: [
                 {
                     title: "帽殼",
                     text: "檢查是否有龜裂或遭受撞擊之白化痕跡，材質劣化時會變脆",
-                    // 下面這三個數字，請用左下角的「座標偵測器」點出來填進去
                     pos: { x: 0, y: 0.15, z: 0.1 }, 
-                    type: "danger" // danger(紅), info(藍)
+                    type: "danger"
                 },
-                // 如果要加第二個點，複製下面這一段：
                 {
                     title: "帽緣/帽沿",
                     text: "確認無變形或缺損，這會影響導水與抗壓結構。",
                     pos: { x: 0.1, y: 0, z: 0 },
                     type: "danger"
-                },
-                
-                {
-                    title: "後方內襯",
-                    text: "檢查懸掛帶是否斷裂，這是吸收衝擊力的關鍵。",
-                    pos: { x: 0.1, y: 0, z: 0 },
-                    type: "danger"
                 }
-            ] 
-         };
+            ]
+        };
+        */
+
+        // --- 設定檔 B：滅火器 (目前開啟中) ---
         const config = {
+            // 請確認這個檔名是否跟 models 資料夾裡的一模一樣 (大小寫也要一樣)
             filePath: './models/fireextinguisher.glb', 
 
-            // 2. 這裡設定模型的名字
             title: "滅火器 (測試版)",
 
-            // 3. 這裡設定所有的標籤點
             points: [
                 {
                     title: "壓力錶指針",
-                    text: "指針必須位於綠色區塊。若偏左表示壓力不足，偏右則壓力過大，皆需重新填充藥劑。",
+                    text: "指針必須位於綠色區塊。若偏左表示壓力不足，偏右則壓力過大。",
                     pos: { x: 0.1, y: 0, z: 0 },
                     type: "danger"
                 },
                 {
                     title: "瓶身狀態",
-                    text: "檢查有無嚴重生鏽、腐蝕或變形。鋼瓶若生鏽嚴重，在使用時可能有爆裂風險。",
+                    text: "檢查有無嚴重生鏽、腐蝕或變形。",
                     pos: { x: 0.1, y: 0, z: 0 },
                     type: "danger"
                 },
@@ -124,13 +115,7 @@
                     text: "確認插梢是否固定完好，無被拔除或損壞。",
                     pos: { x: 0.1, y: 0, z: 0 },
                     type: "danger"
-                },
-                {
-                    title: "皮管與噴嘴",
-                    text: "檢查有無老化斷裂、阻塞或鬆脫現象。",
-                    pos: { x: 0.1, y: 0, z: 0 },
-                    type: "danger"
-                },
+                }
             ]
         };
         
@@ -180,10 +165,11 @@
             loadedModel.scale.multiplyScalar(scale);
             
             scene.add(loadedModel);
+            console.log("模型載入成功！");
             createLabels(); // 產生標籤
         }, undefined, (err) => {
-            console.error(err);
-            alert("模型載入失敗！請檢查檔名是否正確：" + config.filePath);
+            console.error("載入失敗詳細原因：", err);
+            alert("模型載入失敗！\n1. 請按 F12 看 Console 錯誤訊息\n2. 請檢查檔名是否為: " + config.filePath);
         });
 
         // 產生標籤的函數
@@ -203,16 +189,13 @@
             });
         }
 
-        // ============================================
-        // ★★★ 座標偵測器邏輯 (點擊模型顯示座標) ★★★
-        // ============================================
+        // 座標偵測器邏輯
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
         window.addEventListener('click', (event) => {
             if (!loadedModel) return;
 
-            // 計算滑鼠位置
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
@@ -220,10 +203,7 @@
             const intersects = raycaster.intersectObject(loadedModel, true);
 
             if (intersects.length > 0) {
-                // 取得點擊點的座標
                 const point = intersects[0].point;
-                // 轉換回原始模型的相對座標 (抵銷縮放與位移)
-                // 這是一個簡化版，直接顯示世界座標給使用者參考
                 const x = point.x.toFixed(3);
                 const y = point.y.toFixed(3);
                 const z = point.z.toFixed(3);
@@ -231,28 +211,23 @@
                 const msg = `座標: x: ${x}, y: ${y}, z: ${z}`;
                 document.getElementById('coord-output').innerText = msg;
                 
-                // 複製到剪貼簿方便你用
                 navigator.clipboard.writeText(`x: ${x}, y: ${y}, z: ${z}`).then(() => {
-                    alert(`座標已複製！\n${msg}\n請去程式碼貼上取代舊座標。`);
+                    alert(`座標已複製！\n${msg}`);
                 });
             }
         });
 
-        // 動畫迴圈
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
             renderer.render(scene, camera);
 
-            // 更新標籤位置
             labelElements.forEach(item => {
                 const pos = item.pos.clone();
                 pos.project(camera);
                 const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
                 const y = (-(pos.y) * 0.5 + 0.5) * window.innerHeight;
                 item.div.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
-                
-                // 簡單的背面隱藏 (如果跑到後面就不顯示)
                 item.div.style.display = (pos.z > 1) ? 'none' : 'block';
             });
         }
@@ -266,4 +241,3 @@
     </script>
 </body>
 </html>
-
