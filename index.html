@@ -110,7 +110,8 @@
         import * as THREE from 'three';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        import { TWEEN } from 'https://unpkg.com/@tweenjs/tween.js@23.1.1/dist/tween.esm.js';
+        // 修正後的匯入方式
+        import * as TWEEN from 'https://unpkg.com/@tweenjs/tween.js@23.1.1/dist/tween.esm.js';
 
         // 1. 資料庫
         const allData = [
@@ -166,24 +167,21 @@
 
         // 自動導覽功能：相機平滑移動
         function focusOnPoint(targetPos) {
-            const target = new THREE.Vector3(targetPos.x, targetPos.y, targetPos.z);
-            
-            // 計算相機新位置 (稍微靠近點)
-            const offset = new THREE.Vector3(0.3, 0.2, 0.3);
-            const newCamPos = target.clone().add(offset);
+        const target = new THREE.Vector3(targetPos.x, targetPos.y, targetPos.z);
+        const offset = new THREE.Vector3(0.3, 0.2, 0.3);
+        const newCamPos = target.clone().add(offset);
 
-            // 使用 TWEEN 製作平滑動畫
-            new TWEEN.Tween(camera.position)
-                .to({ x: newCamPos.x, y: newCamPos.y, z: newCamPos.z }, 1000)
-                .easing(TWEEN.Easing.Quadratic.Out)
-                .start();
+        // 確保使用 TWEEN.Tween
+        new TWEEN.Tween(camera.position)
+            .to({ x: newCamPos.x, y: newCamPos.y, z: newCamPos.z }, 1000)
+            .easing(TWEEN.Easing.Quadratic.Out)
+            .start();
 
-            new TWEEN.Tween(controls.target)
-                .to({ x: target.x, y: target.y, z: target.z }, 1000)
-                .easing(TWEEN.Easing.Quadratic.Out)
-                .start();
-        }
-
+        new TWEEN.Tween(controls.target)
+            .to({ x: target.x, y: target.y, z: target.z }, 1000)
+            .easing(TWEEN.Easing.Quadratic.Out)
+            .start();
+    }
         function showMessage(title, text, pos) {
             const box = document.getElementById('message-box');
             document.getElementById('msg-title').innerText = title;
@@ -319,3 +317,4 @@
     </script>
 </body>
 </html>
+
