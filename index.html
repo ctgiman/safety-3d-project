@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D 工安教學系統 (附座標偵測工具)</title>
+    <title>3D 工安教學平台</title>
     <style>
         body { margin: 0; font-family: 'Microsoft JhengHei', sans-serif; background: #2c3e50; color: white; overflow: hidden; }
         #container { position: relative; width: 100vw; height: 100vh; }
@@ -11,46 +11,50 @@
         /* 右側資訊欄 */
         #info-panel {
             position: absolute; right: 0; top: 0; bottom: 0; width: 300px;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 20px;
-            box-shadow: -5px 0 15px rgba(0,0,0,0.5);
+            background: rgba(0, 0, 0, 0.8); padding: 20px; box-shadow: -5px 0 15px rgba(0,0,0,0.5); z-index: 100;
         }
         h2 { color: #3498db; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
         .content-box { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+
+        /* 左上角模型切換選單 */
+        #menu { position: absolute; top: 20px; left: 20px; z-index: 200; display: flex; gap: 10px; }
+        .menu-btn { background: #34495e; color: white; border: 1px solid #3498db; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
+        .menu-btn.active { background: #3498db; }
 
         /* 標籤樣式 */
         .annotation {
             position: absolute; width: 30px; height: 30px;
             background: rgba(0,0,0,0.6); border: 2px solid #fff; border-radius: 50%;
-            cursor: pointer; color: #fff; font-weight: bold; text-align: center; line-height: 26px;
-            transition: 0.2s;
+            cursor: pointer; color: #fff; font-weight: bold; text-align: center; line-height: 26px; z-index: 50;
         }
-        .annotation:hover { transform: scale(1.2); background: #3498db; }
         .annotation.danger { border-color: #e74c3c; color: #e74c3c; }
 
-        /* 除錯工具樣式 */
+        /* 開發者工具 */
         #debug-tool {
             position: absolute; bottom: 10px; left: 10px;
             background: rgba(0,0,0,0.9); border: 1px solid #00ff00; color: #00ff00;
-            padding: 10px; font-family: monospace; font-size: 14px; max-width: 400px;
+            padding: 10px; font-family: monospace; font-size: 12px; z-index: 200;
         }
+        .hide { display: none !important; }
     </style>
 </head>
 <body>
 
     <div id="container">
-        <div id="canvas-wrapper" style="width:100%; height:100%;"></div>
+        <div id="menu"></div>
 
+        <div id="canvas-wrapper" style="width:100%; height:100%;"></div>
         <div id="labels-container"></div>
 
         <div id="info-panel">
             <h2 id="model-title">載入中...</h2>
-            <div id="description" class="content-box">請稍候...</div>
+            <div id="description" class="content-box">請選擇模型</div>
         </div>
 
         <div id="debug-tool">
-            <strong>座標偵測器 (開發者模式)</strong><br>
-            請點擊模型上的任意位置...<br>
+            <button onclick="document.getElementById('debug-tool').classList.add('hide')" style="float:right; cursor:pointer;">關閉工具</button>
+            <strong>座標偵測器</strong><br>
+            點擊模型自動複製座標<br>
             <span id="coord-output">x: -, y: -, z: -</span>
         </div>
     </div>
@@ -65,70 +69,42 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
         // =========================================================
-        // ▼▼▼ 【這裡是用戶設定區】 請修改這裡！ ▼▼▼
+        // ★★★ 資料庫：以後你只要在這裡加東西就好 ★★★
         // =========================================================
-        
-        // --- 設定檔 A：工程安全帽 (目前關閉中，想用這個請把下面註解解開，並把滅火器註解起來) ---
-        /*        /*onst config = {
-            filePath: './models/model3.glb', 
-            title: "工程安全帽 (測試版)",
-            points: [
-                {
-                    title: "帽殼",
-                    text: "檢查是否有龜裂或遭受撞擊之白化痕跡，材質劣化時會變脆",
-                    pos: { x: 0, y: 0.15, z: 0.1 }, 
-                    type: "danger"
-                },
-                {
-                    title: "帽緣/帽沿",
-                    text: "確認無變形或缺損，這會影響導水與抗壓結構。",
-                    pos: { x: 0.1, y: 0, z: 0 },
-                    type: "danger"
-                }
-            ]
-        };
-        */
+        const allModels = [
+            {
+                id: "helmet",
+                btnName: "工程安全帽",
+                filePath: './models/model3.glb',
+                title: "工程安全帽檢查重點",
+                points: [
+                    { title: "帽殼頂部", text: "檢查是否有龜裂或遭受撞擊之白化痕跡，材質劣化時會變脆。", pos: { x: 0, y: 0.15, z: 0.1 }, type: "danger" },
+                    { title: "帽帶", text: "確認頤帶功能正常。", pos: { x: 0, y: -0.1, z: 0 }, type: "danger" },
+                    { title: "內襯", text: "檢查是否有龜裂。", pos: { x: 0, y: 0.15, z: 0.1 }, type: "danger" },
+                    { title: "帽緣/帽沿", text: "確認無變形或缺損，這會影響導水與抗壓結構。", pos: { x: 0, y: 0.15, z: 0.1 }, type: "danger" },
+                ]
+            },
+            {
+                id: "fire",
+                btnName: "滅火器",
+                filePath: './models/fireextinguisher.glb',
+                title: "滅火器檢查重點",
+                points: [
+                    { title: "壓力錶指針", text: "指針必須位於綠色區塊。若偏左表示壓力不足，偏右則壓力過大，皆需重新填充藥劑。", pos: { x: 0.05, y: 0.1, z: 0.05 }, type: "danger" },
+                    { title: "瓶身狀態", text: "檢查有無嚴重生鏽、腐蝕或變形。鋼瓶若生鏽嚴重，在使用時可能有爆裂風險。", pos: { x: -0.05, y: 0.15, z: 0 }, type: "danger" },
+                    { title: "安全插梢", text: "確認插梢是否固定完好，無被拔除或損壞。", pos: { x: 0.05, y: 0.1, z: 0.05 }, type: "danger" },
+                    { title: "皮管與噴嘴", text: "檢查有無老化斷裂、阻塞或鬆脫現象。", pos: { x: 0.05, y: 0.1, z: 0.05 }, type: "danger" },
+                ]
+            }
+            // 以後要加新的，直接複製上面一整段貼在這邊
+        ];
 
-        // --- 設定檔 B：滅火器 (目前開啟中) ---
-        const config = {
-            // 請確認這個檔名是否跟 models 資料夾裡的一模一樣 (大小寫也要一樣)
-            filePath: './models/fireextinguisher.glb', 
-
-            title: "滅火器 (測試版)",
-
-            points: [
-                {
-                    title: "壓力錶指針",
-                    text: "指針必須位於綠色區塊。若偏左表示壓力不足，偏右則壓力過大。",
-                    pos: { x: -0.007, y: 0.208, z: 0.054 },
-                    type: "danger"
-                },
-                {
-                    title: "瓶身狀態",
-                    text: "檢查有無嚴重生鏽、腐蝕或變形。",
-                    pos: { x: -0.023, y: 0.047, z: 0.068 },
-                    type: "danger"
-                },
-                {
-                    title: "安全插梢",
-                    text: "確認插梢是否固定完好，無被拔除或損壞。",
-                    pos: { x: 0.030, y: 0.230, z: 0.021 },
-                    type: "danger"
-                },
-                {
-                    title: "皮管與噴嘴",
-                    text: "檢查有無老化斷裂、阻塞或鬆脫現象。",
-                    pos: { x: -0.068, y: -0.069, z: -0.052 },
-                    type: "danger"
-                }
-            ]
-        };
-        
-        // ▲▲▲ 設定區結束 ▲▲▲
         // =========================================================
-
-        // 初始化場景
-        const container = document.getElementById('canvas-wrapper');
+        // 核心邏輯
+        // =========================================================
+        let currentModelObj = null;
+        let loadedModel = null;
+        const labelElements = [];
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x333333);
 
@@ -137,7 +113,7 @@
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        container.appendChild(renderer.domElement);
+        document.getElementById('canvas-wrapper').appendChild(renderer.domElement);
 
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
@@ -148,77 +124,85 @@
         dirLight.position.set(2, 5, 2);
         scene.add(dirLight);
 
-        // 載入模型
         const loader = new GLTFLoader();
-        let loadedModel = null;
-        
-        // 顯示基本資訊
-        document.getElementById('model-title').innerText = config.title;
-        document.getElementById('description').innerText = "請旋轉模型並點擊標記點查看詳情。";
 
-        loader.load(config.filePath, (gltf) => {
-            loadedModel = gltf.scene;
-            
-            // 自動調整大小與位置
-            const box = new THREE.Box3().setFromObject(loadedModel);
-            const center = box.getCenter(new THREE.Vector3());
-            const size = box.getSize(new THREE.Vector3());
-            const maxDim = Math.max(size.x, size.y, size.z);
-            const scale = 0.5 / maxDim;
-            
-            loadedModel.position.sub(center);
-            loadedModel.scale.multiplyScalar(scale);
-            
-            scene.add(loadedModel);
-            console.log("模型載入成功！");
-            createLabels(); // 產生標籤
-        }, undefined, (err) => {
-            console.error("載入失敗詳細原因：", err);
-            alert("模型載入失敗！\n1. 請按 F12 看 Console 錯誤訊息\n2. 請檢查檔名是否為: " + config.filePath);
-        });
+        // 載入模型的函數
+        function loadModelById(id) {
+            // 1. 清除舊東西
+            if (loadedModel) scene.remove(loadedModel);
+            document.getElementById('labels-container').innerHTML = "";
+            labelElements.length = 0;
 
-        // 產生標籤的函數
-        const labelElements = [];
-        function createLabels() {
-            const labelsContainer = document.getElementById('labels-container');
-            config.points.forEach((data, i) => {
-                const div = document.createElement('div');
-                div.className = `annotation ${data.type}`;
-                div.innerText = i + 1;
-                div.onclick = () => {
-                    document.getElementById('model-title').innerText = data.title;
-                    document.getElementById('description').innerText = data.text;
-                };
-                labelsContainer.appendChild(div);
-                labelElements.push({ div, pos: new THREE.Vector3(data.pos.x, data.pos.y, data.pos.z) });
+            // 2. 找到資料
+            currentModelObj = allModels.find(m => m.id === id);
+            document.getElementById('model-title').innerText = currentModelObj.title;
+            document.getElementById('description').innerText = "載入中...";
+
+            // 3. 執行載入
+            loader.load(currentModelObj.filePath, (gltf) => {
+                loadedModel = gltf.scene;
+                const box = new THREE.Box3().setFromObject(loadedModel);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                const scale = 0.5 / Math.max(size.x, size.y, size.z);
+                
+                loadedModel.position.sub(center);
+                loadedModel.scale.multiplyScalar(scale);
+                scene.add(loadedModel);
+                
+                document.getElementById('description').innerText = "點擊數字標籤查看說明";
+                createLabels(currentModelObj.points);
             });
         }
 
-        // 座標偵測器邏輯
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
+        function createLabels(points) {
+            const container = document.getElementById('labels-container');
+            points.forEach((p, i) => {
+                const div = document.createElement('div');
+                div.className = `annotation ${p.type}`;
+                div.innerText = i + 1;
+                div.onclick = () => {
+                    document.getElementById('model-title').innerText = p.title;
+                    document.getElementById('description').innerText = p.text;
+                };
+                container.appendChild(div);
+                labelElements.push({ div, pos: new THREE.Vector3(p.pos.x, p.pos.y, p.pos.z) });
+            });
+        }
 
+        // 建立選單按鈕
+        const menu = document.getElementById('menu');
+        allModels.forEach(m => {
+            const btn = document.createElement('button');
+            btn.className = "menu-btn";
+            btn.innerText = m.btnName;
+            btn.onclick = () => {
+                document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                loadModelById(m.id);
+            };
+            menu.appendChild(btn);
+        });
+
+        // 預設載入第一個
+        menu.firstChild.click();
+
+        // 座標偵測邏輯
         window.addEventListener('click', (event) => {
             if (!loadedModel) return;
-
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
+            const mouse = new THREE.Vector2(
+                (event.clientX / window.innerWidth) * 2 - 1,
+                -(event.clientY / window.innerHeight) * 2 + 1
+            );
+            const raycaster = new THREE.Raycaster();
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObject(loadedModel, true);
 
             if (intersects.length > 0) {
-                const point = intersects[0].point;
-                const x = point.x.toFixed(3);
-                const y = point.y.toFixed(3);
-                const z = point.z.toFixed(3);
-
-                const msg = `座標: x: ${x}, y: ${y}, z: ${z}`;
-                document.getElementById('coord-output').innerText = msg;
-                
-                navigator.clipboard.writeText(`x: ${x}, y: ${y}, z: ${z}`).then(() => {
-                    alert(`座標已複製！\n${msg}`);
-                });
+                const p = intersects[0].point;
+                const coordStr = `x: ${p.x.toFixed(3)}, y: ${p.y.toFixed(3)}, z: ${p.z.toFixed(3)}`;
+                document.getElementById('coord-output').innerText = coordStr;
+                navigator.clipboard.writeText(coordStr);
             }
         });
 
@@ -226,13 +210,9 @@
             requestAnimationFrame(animate);
             controls.update();
             renderer.render(scene, camera);
-
             labelElements.forEach(item => {
-                const pos = item.pos.clone();
-                pos.project(camera);
-                const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
-                const y = (-(pos.y) * 0.5 + 0.5) * window.innerHeight;
-                item.div.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+                const pos = item.pos.clone().project(camera);
+                item.div.style.transform = `translate(-50%, -50%) translate(${(pos.x * 0.5 + 0.5) * window.innerWidth}px, ${(-(pos.y) * 0.5 + 0.5) * window.innerHeight}px)`;
                 item.div.style.display = (pos.z > 1) ? 'none' : 'block';
             });
         }
@@ -246,6 +226,3 @@
     </script>
 </body>
 </html>
-
-
-
