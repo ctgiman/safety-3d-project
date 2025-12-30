@@ -49,10 +49,20 @@
 
         /* 3D 標籤按鈕 */
         .annotation {
-            position: absolute; width: 30px; height: 30px;
-            background: #ff9800; border: 3px solid white; border-radius: 50%;
-            color: white; font-weight: bold; text-align: center; line-height: 24px;
-            box-shadow: 0 0 15px rgba(255, 152, 0, 0.8); cursor: pointer; z-index: 999;
+            position: absolute;
+            width: 35px; 
+            height: 35px;
+            background: #ff3d00; /* 更紅一點，更明顯 */
+            border: 3px solid #ffffff;
+            border-radius: 50%;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            line-height: 29px;
+            box-shadow: 0 0 20px rgba(255, 61, 0, 1); /* 強力發光 */
+            cursor: pointer;
+            z-index: 9999; /* 極高層級 */
+            pointer-events: auto;
         }
         .annotation:hover { background: #e74c3c; transform: scale(1.2); }
 
@@ -245,10 +255,19 @@
             requestAnimationFrame(animate);
             controls.update();
             renderer.render(scene, camera);
+    
             labelElements.forEach(item => {
                 const pos = item.pos.clone().project(camera);
-                item.div.style.transform = `translate(-50%, -50%) translate(${(pos.x * 0.5 + 0.5) * window.innerWidth}px, ${(-(pos.y) * 0.5 + 0.5) * window.innerHeight}px)`;
-                item.div.style.display = (pos.z > 1) ? 'none' : 'block';
+                // 修正計算公式，確保座標轉換正確
+                const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
+                const y = (-(pos.y) * 0.5 + 0.5) * window.innerHeight;
+        
+                item.div.style.left = `${x}px`;
+                item.div.style.top = `${y}px`;
+                item.div.style.transform = `translate(-50%, -50%)`;
+        
+                // 先暫時關閉背面隱藏，確保標籤一定會出現
+                item.div.style.display = 'block'; 
             });
         }
         animate();
@@ -261,3 +280,4 @@
     </script>
 </body>
 </html>
+
