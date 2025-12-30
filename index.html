@@ -46,10 +46,19 @@
 
         /* 3D 標籤按鈕 */
         .annotation {
-            position: absolute; width: 35px; height: 35px;
-            background: rgba(52, 152, 219, 0.7); border: 2px solid white; border-radius: 50%;
-            cursor: pointer; color: white; font-weight: bold; text-align: center; line-height: 31px;
-            z-index: 50; box-shadow: 0 0 10px rgba(255,255,255,0.3);
+            position: absolute;
+            width: 30px; 
+            height: 30px;
+            background: #ff9800; /* 亮橘色 */
+            border: 3px solid white;
+            border-radius: 50%;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            line-height: 24px;
+            box-shadow: 0 0 15px rgba(255, 152, 0, 0.8); /* 外發光 */
+            cursor: pointer;
+            z-index: 999; /* 確保在最前面 */
         }
         .annotation:hover { background: #e74c3c; transform: scale(1.2); }
 
@@ -264,4 +273,5 @@
     </script>
 </body>
 </html>
+
 
