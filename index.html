@@ -7,14 +7,10 @@
     <style>
         :root { --primary: #3498db; --bg: #1a1a1a; --panel: rgba(30, 30, 30, 0.95); }
         body { margin: 0; font-family: 'Microsoft JhengHei', sans-serif; background: #000; color: white; overflow: hidden; }
-        
         #container { position: relative; width: 100vw; height: 100vh; display: flex; }
 
         /* 左側：部位清單 */
-        #left-panel {
-            position: absolute; left: 20px; top: 100px; width: 200px;
-            z-index: 100; pointer-events: none;
-        }
+        #left-panel { position: absolute; left: 20px; top: 100px; width: 200px; z-index: 100; pointer-events: none; }
         .part-item {
             pointer-events: auto; background: var(--panel); border-left: 4px solid var(--primary);
             padding: 10px; margin-bottom: 8px; cursor: pointer; border-radius: 0 5px 5px 0;
@@ -36,6 +32,13 @@
         .model-btn:hover { background: #444; }
         .model-btn.active { background: var(--primary); font-weight: bold; }
 
+        /* 重置視角按鈕 */
+        #reset-btn {
+            width: 100%; padding: 10px; background: #e67e22; color: white; border: none;
+            border-radius: 5px; cursor: pointer; font-weight: bold; margin-bottom: 20px;
+        }
+        #reset-btn:hover { background: #d35400; }
+
         /* 下方：訊息顯示區 */
         #message-box {
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
@@ -46,19 +49,10 @@
 
         /* 3D 標籤按鈕 */
         .annotation {
-            position: absolute;
-            width: 30px; 
-            height: 30px;
-            background: #ff9800; /* 亮橘色 */
-            border: 3px solid white;
-            border-radius: 50%;
-            color: white;
-            font-weight: bold;
-            text-align: center;
-            line-height: 24px;
-            box-shadow: 0 0 15px rgba(255, 152, 0, 0.8); /* 外發光 */
-            cursor: pointer;
-            z-index: 999; /* 確保在最前面 */
+            position: absolute; width: 30px; height: 30px;
+            background: #ff9800; border: 3px solid white; border-radius: 50%;
+            color: white; font-weight: bold; text-align: center; line-height: 24px;
+            box-shadow: 0 0 15px rgba(255, 152, 0, 0.8); cursor: pointer; z-index: 999;
         }
         .annotation:hover { background: #e74c3c; transform: scale(1.2); }
 
@@ -79,11 +73,10 @@
         </div>
 
         <div id="right-panel">
+            <button id="reset-btn">🏠 重置視角 / 置中</button>
             <h2 style="margin-top:0;">工安器材庫</h2>
-            
             <div class="category-title">防護具類</div>
             <div id="cat-ppe"></div>
-            
             <div class="category-title">消防器材類</div>
             <div id="cat-fire"></div>
         </div>
@@ -113,20 +106,18 @@
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-        // =========================================================
-        // 1. 資料庫：在這裡分類並管理你的物件
-        // =========================================================
+        // 1. 資料庫 (已修正 pos 結構)
         const allData = [
             {
                 id: "helmet",
-                category: "ppe", // 分類
+                category: "ppe",
                 name: "工程安全帽",
                 file: "./models/model3.glb",
                 points: [
-                    { title: "帽殼狀態", text: "檢查是否有龜裂或遭受撞擊之白化痕跡，材質劣化時會變脆。", pos: { pos: { x: 0.007, y: 0.249, z: -0.028 } } },
-                    { title: "頤帶扣環", text: "確認扣環是否牢固，無斷裂痕跡。", pos: { pos: { x: 0.105, y: -0.101, z: -0.016 } } },
-                    { title: "內襯", text: "檢查是否有龜裂。", pos: { pos: { x: -0.022, y: 0.232, z: -0.086 } } },
-                    { title: "帽緣/帽沿", text: "確認無變形或缺損，這會影響導水與抗壓結構。", pos: { pos: { x: 0.007, y: 0.015, z: 0.207 } } }
+                    { title: "帽殼狀態", text: "檢查是否有龜裂或遭受撞擊之白化痕跡。", pos: { x: 0.007, y: 0.249, z: -0.028 } },
+                    { title: "頤帶扣環", text: "確認扣環是否牢固，無斷裂痕跡。", pos: { x: 0.105, y: -0.101, z: -0.016 } },
+                    { title: "內襯", text: "檢查是否有龜裂。", pos: { x: -0.022, y: 0.232, z: -0.086 } },
+                    { title: "帽緣/帽沿", text: "確認無變形或缺損。", pos: { x: 0.007, y: 0.015, z: 0.207 } }
                 ]
             },
             {
@@ -135,17 +126,15 @@
                 name: "乾粉滅火器",
                 file: "./models/fireextinguisher.glb",
                 points: [
-                    { title: "壓力錶指針", text: "指針必須位於綠色區塊。若偏左表示壓力不足，偏右則壓力過大，皆需重新填充藥劑。", pos: { pos: { x: -0.005, y: 0.208, z: 0.054 } } },
-                    { title: "安全插梢", text: "確認插梢是否固定完好，無被拔除或損壞。", pos: { pos: { x: 0.031, y: 0.232, z: 0.022 } } },
-                    { title: "瓶身狀態", text: "檢查有無嚴重生鏽、腐蝕或變形。鋼瓶若生鏽嚴重，在使用時可能有爆裂風險。", pos: { pos: { x: 0.045, y: -0.005, z: 0.057 } } },
-                    { title: "皮管與噴嘴", text: "檢查有無老化斷裂、阻塞或鬆脫現象。", pos: { pos: { x: -0.068, y: -0.067, z: -0.052 } } }
+                    { title: "壓力錶指針", text: "指針必須位於綠色區塊。", pos: { x: -0.005, y: 0.208, z: 0.054 } },
+                    { title: "安全插梢", text: "確認插梢是否固定完好。", pos: { x: 0.031, y: 0.232, z: 0.022 } },
+                    { title: "瓶身狀態", text: "檢查有無嚴重生鏽、腐蝕或變形。", pos: { x: 0.045, y: -0.005, z: 0.057 } },
+                    { title: "皮管與噴嘴", text: "檢查有無老化斷裂、阻塞或鬆脫現象。", pos: { x: -0.068, y: -0.067, z: -0.052 } }
                 ]
             }
         ];
 
-        // =========================================================
-        // 2. 核心初始化
-        // =========================================================
+        // 2. 初始化
         let loadedModel = null;
         const labelElements = [];
         const scene = new THREE.Scene();
@@ -168,7 +157,6 @@
 
         const loader = new GLTFLoader();
 
-        // 顯示訊息的函數
         function showMessage(title, text) {
             const box = document.getElementById('message-box');
             document.getElementById('msg-title').innerText = title;
@@ -176,9 +164,7 @@
             box.style.display = 'block';
         }
 
-        // 載入物件與更新 UI
         function loadObject(data) {
-            // 清理舊資料
             if (loadedModel) scene.remove(loadedModel);
             document.getElementById('labels-container').innerHTML = "";
             document.getElementById('parts-list').innerHTML = "";
@@ -195,21 +181,18 @@
                 loadedModel.scale.multiplyScalar(scale);
                 scene.add(loadedModel);
 
-                // 產生左側清單與 3D 標籤
                 data.points.forEach((p, i) => {
-                    // 左側清單
                     const item = document.createElement('div');
                     item.className = 'part-item';
                     item.innerText = `${i+1}. ${p.title}`;
                     item.onclick = () => showMessage(p.title, p.text);
                     document.getElementById('parts-list').appendChild(item);
 
-                    // 3D 標籤 (按鈕)
                     const label = document.createElement('div');
                     label.className = 'annotation';
                     label.innerText = i + 1;
                     label.onclick = (e) => {
-                        e.stopPropagation(); // 防止觸發到下面的座標偵測
+                        e.stopPropagation();
                         showMessage(p.title, p.text);
                     };
                     document.getElementById('labels-container').appendChild(label);
@@ -218,7 +201,7 @@
             });
         }
 
-        // 初始化右側選單
+        // 初始化選單
         allData.forEach(obj => {
             const btn = document.createElement('button');
             btn.className = 'model-btn';
@@ -231,10 +214,15 @@
             document.getElementById('cat-' + obj.category).appendChild(btn);
         });
 
-        // 預設載入第一個
+        // 重置視角功能
+        document.getElementById('reset-btn').onclick = () => {
+            controls.reset(); // 回到 OrbitControls 初始設定
+            camera.position.set(0.8, 0.5, 0.8);
+            controls.update();
+        };
+
         document.querySelector('.model-btn').click();
 
-        // 座標偵測器 (僅供開發使用)
         window.addEventListener('mousedown', (event) => {
             if (!loadedModel) return;
             const mouse = new THREE.Vector2(
@@ -273,5 +261,3 @@
     </script>
 </body>
 </html>
-
-
