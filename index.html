@@ -53,11 +53,59 @@
             cursor: pointer; z-index: 1000; pointer-events: auto;
         }
 
-        /* 下方訊息視窗 */
+            /* 下方訊息視窗 */
+           /* 資訊彈窗 (Modal) */
         #message-box {
-            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            width: 450px; background: rgba(0,0,0,0.9); border: 2px solid var(--primary);
-            padding: 20px; border-radius: 15px; z-index: 2000; display: none;
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%); /* 絕對置中 */
+            width: 400px;
+            max-width: 90vw; /* 手機版不超出版面 */
+            background: rgba(20, 20, 20, 0.95); /* 深色背景 */
+            border: 1px solid var(--primary);
+            border-radius: 10px;
+            padding: 0; /* 內距交給內部元素 */
+            z-index: 2000;
+            display: none; /* 預設隱藏 */
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            overflow: hidden; /* 讓圖片圓角不溢出 */
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        /* 彈窗內的圖片區域 */
+        #msg-img-container {
+            width: 100%;
+            height: 200px; /* 固定圖片高度 */
+            background: #333;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #msg-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* 保持比例填滿，不會變形 */
+            display: block;
+        }
+
+        /* 彈窗內容區域 */
+        .msg-body { padding: 20px; }
+
+        #msg-title { margin-top: 0; color: var(--primary); font-size: 22px; border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 10px; }
+        #msg-content { line-height: 1.6; color: #ddd; font-size: 15px; }
+
+        /* 關閉按鈕 */
+        .close-btn {
+            position: absolute; top: 10px; right: 10px;
+            background: rgba(0,0,0,0.5); border: none; color: white;
+            width: 30px; height: 30px; border-radius: 50%;
+            cursor: pointer; font-weight: bold; z-index: 10;
+        }
+        .close-btn:hover { background: var(--primary); }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -45%); }
+            to { opacity: 1; transform: translate(-50%, -50%); }
         }
 
         #debug-tool {
@@ -133,13 +181,35 @@
                 name: "乾粉滅火器",
                 file: "./models/fireextinguisher.glb",
                 points: [
-                    { title: "壓力錶指針", text: "指針必須位於綠色區塊。", pos: { x: -0.005, y: 0.208, z: 0.054 } },
-                    { title: "安全插梢", text: "確認插梢是否固定完好，鉛封未脫落。", pos: { x: 0.031, y: 0.232, z: 0.022 } },
-                    { title: "瓶身狀態", text: "檢查有無嚴重生鏽、腐蝕或變形。", pos: { x: 0.038, y: -0.142, z: 0.001 } },
-                    { title: "皮管與噴嘴", text: "檢查有無老化斷裂、阻塞現象。", pos: { x: -0.068, y: -0.067, z: -0.052 } }
-                ]
-            }
-        ];
+                { 
+                    title: "壓力錶指針", 
+                    text: "【正常範圍】：指針必須位於綠色區塊。\n【異常】：偏左(黃色)代表壓力不足，需送檢填充；偏右(紅色)代表壓力過大，有爆裂風險。", 
+                    img: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Pressure_gauge_of_fire_extinguisher.jpg/640px-Pressure_gauge_of_fire_extinguisher.jpg", // 這裡放圖片網址
+                    pos: { x: -0.005, y: 0.208, z: 0.054 } 
+                },
+                { 
+                    title: "安全插梢", 
+                    text: "用途：防止誤觸發。\n檢查重點：確認插梢是否固定完好，鉛封(封條)必須未脫落、未斷裂。", 
+                    img: "https://thumbs.dreamstime.com/b/safety-pin-red-fire-extinguisher-close-up-169036733.jpg", 
+                    pos: { x: 0.031, y: 0.232, z: 0.022 } 
+                },
+                { 
+                    title: "瓶身狀態", 
+                    text: "每三年需進行水壓測試。檢查重點：有無嚴重生鏽、腐蝕或變形。", 
+                    // 如果沒有圖片，這欄可以不寫，或留空字串 ""，程式會自動只顯示文字
+                    img: "", 
+                    pos: { x: 0.038, y: -0.142, z: 0.001 } 
+                },
+                { 
+                    title: "皮管與噴嘴", 
+                    text: "檢查重點：確認無龜裂、老化或阻塞。使用時應握住噴嘴前端。", 
+                    img: "https://media.istockphoto.com/id/175435985/photo/fire-extinguisher-hose.jpg?s=612x612&w=0&k=20&c=GzWJ6Z-I_fQ_1BvTjQW8qJk_wXNn7W_1qV_2r_3t_4=",
+                    pos: { x: -0.068, y: -0.067, z: -0.052 } 
+                }
+            ]
+        },
+        // ... 安全帽的資料也可以如法炮製 ...
+    ];
 
         // 2. 初始化場景
         let loadedModel = null;
@@ -193,12 +263,27 @@ function focusOnPoint(targetPos) {
         .easing(TWEEN.Easing.Quadratic.Out)
         .start();
 }
-        function showMessage(title, text, pos) {
+        function showMessage(title, text, pos, imgUrl) {
             const box = document.getElementById('message-box');
+            const imgTag = document.getElementById('msg-img');
+            const imgContainer = document.getElementById('msg-img-container');
+
+            // 設定標題與文字
             document.getElementById('msg-title').innerText = title;
             document.getElementById('msg-content').innerText = text;
+
+            // 設定圖片邏輯
+            if (imgUrl) {
+                imgTag.src = imgUrl;
+                imgContainer.style.display = 'block'; // 有圖就顯示
+            } else {
+                imgContainer.style.display = 'none'; // 沒圖就把圖片框藏起來，只顯示文字
+            }
+
             box.style.display = 'block';
-            if(pos) focusOnPoint(pos); // 點擊時觸發導覽
+
+            // 觸發相機導覽
+            if (pos) focusOnPoint(pos);
         }
 
         function loadObject(data) {
@@ -328,6 +413,7 @@ function focusOnPoint(targetPos) {
     </script>
 </body>
 </html>
+
 
 
 
