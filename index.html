@@ -13,6 +13,19 @@
             overflow: hidden; 
         }
 
+        /* 載入畫面 */
+        #loading-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.1); border-left-color: var(--primary);
+            border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
         /* 指引線畫布 */
         #line-canvas {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -67,7 +80,7 @@
             border: 1px solid var(--primary);
             border-radius: 10px;
             padding: 0;
-            z-index: 2000; /* 層級 2000 */
+            z-index: 2000;
             display: none;
             box-shadow: 0 0 30px rgba(0,0,0,0.8);
             overflow: hidden;
@@ -75,19 +88,17 @@
         }
 
         #msg-img-container {
-            width: 100%; background: #333; overflow: hidden; position: relative; display: none;
+            width: 100%; height: 250px; background: #000; overflow: hidden; position: relative; display: none;
         }
         #msg-img { 
-            width: 100%; 
-            height: 100%; 
-            object-fit: contain;  /* ★ 改成 contain，圖片就會縮放至完整顯示，不被裁切 */
-            background: #000;    /* 背景設為黑色，若圖片太長或太扁，旁邊會留黑邊而不是空白 */
+            width: 100%; height: 100%; 
+            object-fit: contain; /* ★ 確保圖片完整顯示，不裁切 */
+            display: block; 
         }
         .msg-body { padding: 20px; }
         #msg-title { margin-top: 0; color: var(--primary); font-size: 22px; border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 10px; }
-        #msg-content { line-height: 1.6; color: #ddd; font-size: 15px; margin: 0; }
+        #msg-content { line-height: 1.6; color: #ddd; font-size: 15px; margin: 0; white-space: pre-line; }
 
-        /* 詳細按鈕樣式 */
         #btn-more-info {
             display: none; width: 100%; margin-top: 15px; padding: 10px;
             background: var(--primary); color: white; border: none;
@@ -96,16 +107,16 @@
         }
         #btn-more-info:hover { background: #2980b9; }
 
-        /* === 第二層資訊彈窗 (Level 2 - 詳細構造) === */
+        /* === 第二層資訊彈窗 (Level 2) === */
         #message-box-level2 {
             position: absolute;
-            top: 55%; left: 55%; /* 故意稍微錯開，讓使用者知道是疊在上面的 */
+            top: 55%; left: 55%;
             transform: translate(-50%, -50%);
             width: 350px; max-width: 85vw;
-            background: rgba(35, 35, 35, 0.98); /* 深一點的顏色 */
-            border: 1px solid #e67e22; /* 橘色邊框區分 */
+            background: rgba(35, 35, 35, 0.98);
+            border: 1px solid #e67e22;
             border-radius: 10px;
-            z-index: 2100; /* ★ 重點：比第一層大，所以會疊在上面 */
+            z-index: 2100;
             display: none;
             box-shadow: 0 0 40px rgba(0,0,0,1);
             animation: fadeIn 0.3s ease-out;
@@ -133,6 +144,11 @@
     </style>
 </head>
 <body>
+
+    <div id="loading-screen">
+        <div class="spinner"></div>
+        <p>系統加載中... <span id="progress-text">0%</span></p>
+    </div>
 
     <div id="container">
         <svg id="line-canvas"></svg>
@@ -175,8 +191,8 @@
 
         <div id="debug-tool">
             <button onclick="this.parentElement.style.display='none'">關閉工具</button><br>
-            <strong>座標偵測器</strong> (點擊模型獲取)<br>
-            <span id="coord-output">x: -, y: -, z: -</span>
+            <strong>座標偵測器</strong><br>
+            <span id="coord-output">點擊模型獲取座標</span>
         </div>
     </div>
 
@@ -190,7 +206,6 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { Tween, Easing, update as updateTween } from 'https://unpkg.com/@tweenjs/tween.js@23.1.1/dist/tween.esm.js';
 
-        // 1. 資料庫設定
         const allData = [
             {
                 id: "helmet",
@@ -212,28 +227,23 @@
                     { 
                         title: "壓力錶指針", 
                         text: "【正常範圍】：指針必須位於綠色區塊。\n【異常】：偏左(黃色)代表壓力不足；偏右(紅色)代表壓力過大。", 
-                        // ★★★ 這裡就是連結本地圖片的地方 ★★★
-                        // 請確保你的 images 資料夾裡面有 gauge.jpg
                         img: "./images/gauge.jpg", 
                         pos: { x: -0.005, y: 0.208, z: 0.054 },
-                        
-                        // ★★★ 這裡設定第二層彈窗的內容 ★★★
                         detail: {
                             title: "壓力錶內部構造",
-                            text: "壓力錶內部由波登管(Bourdon tube)組成。當氣體壓力進入時，銅管會像吹捲笛一樣拉直，帶動齒輪轉動指針。若是受潮生鏽，會導致齒輪卡死。",
-                            // 如果第二層也要圖片，也可以放： img: "./images/gauge_inner.jpg"
+                            text: "壓力錶內部由波登管(Bourdon tube)組成。當氣體壓力進入時，銅管會拉直，帶動齒輪轉動指針。若是受潮生鏽，會導致齒輪卡死。",
                         }
                     },
                     { 
                         title: "安全插梢", 
-                        text: "用途：防止誤觸發。檢查重點：確認插梢是否固定完好，鉛封(封條)必須未脫落。", 
-                        img: "./images/pin.jpg", // 這是網路圖片
+                        text: "用途：防止誤觸發。檢查重點：確認插梢是否固定完好，鉛封必須未脫落。", 
+                        img: "./images/pin.jpg", 
                         pos: { x: 0.031, y: 0.232, z: 0.022 } 
                     },
                     { 
                         title: "瓶身狀態", 
                         text: "每三年需進行水壓測試。檢查重點：有無嚴重生鏽、腐蝕或變形。", 
-                        img: "", // 沒圖片就留空
+                        img: "", 
                         pos: { x: 0.045, y: -0.005, z: 0.057 } 
                     },
                     { 
@@ -246,7 +256,6 @@
             }
         ];
 
-        // 2. 初始化場景
         let loadedModel = null;
         const labelElements = [];
         const scene = new THREE.Scene();
@@ -276,107 +285,94 @@
             const safetyDistance = 0.5; 
             const newCamPos = direction.multiplyScalar(safetyDistance);
 
-            new Tween(camera.position)
-                .to({ x: newCamPos.x, y: newCamPos.y, z: newCamPos.z }, 1200)
-                .easing(Easing.Cubic.Out)
-                .onUpdate(() => camera.lookAt(target))
-                .start();
-
-            new Tween(controls.target)
-                .to({ x: target.x, y: target.y, z: target.z }, 1000)
-                .easing(Easing.Quadratic.Out)
-                .start();
+            new Tween(camera.position).to({ x: newCamPos.x, y: newCamPos.y, z: newCamPos.z }, 1200).easing(Easing.Cubic.Out).onUpdate(() => camera.lookAt(target)).start();
+            new Tween(controls.target).to({ x: target.x, y: target.y, z: target.z }, 1000).easing(Easing.Quadratic.Out).start();
         }
 
-        // ★★★ 核心功能：顯示第一層與第二層視窗 ★★★
         function showMessage(pointData) {
             const box = document.getElementById('message-box');
             const imgTag = document.getElementById('msg-img');
             const imgContainer = document.getElementById('msg-img-container');
             const btnMore = document.getElementById('btn-more-info');
             
-            // 每次打開新視窗時，先把第二層關掉，避免混亂
             document.getElementById('message-box-level2').style.display = 'none';
 
-            // 1. 填入第一層內容
             document.getElementById('msg-title').innerText = pointData.title;
             document.getElementById('msg-content').innerText = pointData.text;
 
-            // 處理圖片
             if (pointData.img && pointData.img !== "") {
                 imgTag.src = pointData.img;
                 imgContainer.style.display = 'block';
             } else {
-                imgTag.src = "";
                 imgContainer.style.display = 'none';
             }
 
-            // 2. 判斷是否有「詳細資料 (detail)」，有的話顯示按鈕
             if (pointData.detail) {
-                btnMore.style.display = 'block'; // 顯示按鈕
-                
-                // 設定按鈕點擊事件：打開第二層視窗
+                btnMore.style.display = 'block';
                 btnMore.onclick = () => {
                     const box2 = document.getElementById('message-box-level2');
                     document.getElementById('msg-title-2').innerText = pointData.detail.title;
                     document.getElementById('msg-content-2').innerText = pointData.detail.text;
-                    
                     const img2 = document.getElementById('msg-img-2');
-                    if (pointData.detail.img) {
-                        img2.src = pointData.detail.img;
-                        img2.style.display = 'block';
-                    } else {
-                        img2.style.display = 'none';
-                    }
-                    
-                    box2.style.display = 'block'; // 顯示第二層
+                    if (pointData.detail.img) { img2.src = pointData.detail.img; img2.style.display = 'block'; }
+                    else { img2.style.display = 'none'; }
+                    box2.style.display = 'block';
                 };
             } else {
-                btnMore.style.display = 'none'; // 沒詳細資料就隱藏按鈕
+                btnMore.style.display = 'none';
             }
 
-            box.style.display = 'block'; // 顯示第一層
+            box.style.display = 'block';
             if (pointData.pos) focusOnPoint(pointData.pos);
         }
 
         function loadObject(data) {
+            // 顯示載入畫面
+            const loadingScreen = document.getElementById('loading-screen');
+            const progressText = document.getElementById('progress-text');
+            loadingScreen.style.display = 'flex';
+            progressText.innerText = '0%';
+
             if (loadedModel) scene.remove(loadedModel);
             document.getElementById('labels-container').innerHTML = "";
             document.getElementById('parts-list').innerHTML = "";
             document.getElementById('message-box').style.display = 'none';
-            document.getElementById('message-box-level2').style.display = 'none';
             labelElements.length = 0;
 
-            loader.load(data.file, (gltf) => {
-                loadedModel = gltf.scene;
-                const box = new THREE.Box3().setFromObject(loadedModel);
-                const center = box.getCenter(new THREE.Vector3());
-                const size = box.getSize(new THREE.Vector3());
-                const scale = 0.5 / Math.max(size.x, size.y, size.z);
-                loadedModel.position.sub(center);
-                loadedModel.scale.multiplyScalar(scale);
-                scene.add(loadedModel);
+            loader.load(data.file, 
+                (gltf) => {
+                    loadingScreen.style.display = 'none';
+                    loadedModel = gltf.scene;
+                    const box = new THREE.Box3().setFromObject(loadedModel);
+                    const center = box.getCenter(new THREE.Vector3());
+                    const size = box.getSize(new THREE.Vector3());
+                    const scale = 0.5 / Math.max(size.x, size.y, size.z);
+                    loadedModel.position.sub(center);
+                    loadedModel.scale.multiplyScalar(scale);
+                    scene.add(loadedModel);
 
-                data.points.forEach((p, i) => {
-                    // 左側列表
-                    const item = document.createElement('div');
-                    item.className = 'part-item';
-                    item.innerText = `${i+1}. ${p.title}`;
-                    item.onclick = () => showMessage(p); // 傳入整個物件
-                    document.getElementById('parts-list').appendChild(item);
+                    data.points.forEach((p, i) => {
+                        const item = document.createElement('div');
+                        item.className = 'part-item';
+                        item.innerText = `${i+1}. ${p.title}`;
+                        item.onclick = () => showMessage(p);
+                        document.getElementById('parts-list').appendChild(item);
 
-                    // 3D 標籤
-                    const label = document.createElement('div');
-                    label.className = 'annotation';
-                    label.innerText = i + 1;
-                    label.onclick = (e) => {
-                        e.stopPropagation();
-                        showMessage(p); // 傳入整個物件
-                    };
-                    document.getElementById('labels-container').appendChild(label);
-                    labelElements.push({ div: label, pos: new THREE.Vector3(p.pos.x, p.pos.y, p.pos.z) });
-                });
-            });
+                        const label = document.createElement('div');
+                        label.className = 'annotation';
+                        label.innerText = i + 1;
+                        label.onclick = (e) => { e.stopPropagation(); showMessage(p); };
+                        document.getElementById('labels-container').appendChild(label);
+                        labelElements.push({ div: label, pos: new THREE.Vector3(p.pos.x, p.pos.y, p.pos.z) });
+                    });
+                },
+                (xhr) => {
+                    if (xhr.lengthComputable) {
+                        const percent = Math.round((xhr.loaded / xhr.total) * 100);
+                        progressText.innerText = percent + '%';
+                    }
+                }
+            );
         }
 
         allData.forEach(obj => {
@@ -397,24 +393,19 @@
             new Tween(controls.target).to({ x: 0, y: 0, z: 0 }, 800).start();
         };
 
+        // 啟動第一個模型
         document.querySelector('.model-btn').click();
 
-        // 座標偵測工具
         window.addEventListener('mousedown', (event) => {
             if (!loadedModel) return;
-            const mouse = new THREE.Vector2(
-                (event.clientX / window.innerWidth) * 2 - 1,
-                -(event.clientY / window.innerHeight) * 2 + 1
-            );
+            const mouse = new THREE.Vector2((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
             const raycaster = new THREE.Raycaster();
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObject(loadedModel, true);
-
             if (intersects.length > 0) {
                 const p = intersects[0].point;
                 const str = `pos: { x: ${p.x.toFixed(3)}, y: ${p.y.toFixed(3)}, z: ${p.z.toFixed(3)} }`;
                 document.getElementById('coord-output').innerText = str;
-                navigator.clipboard.writeText(str);
             }
         });
 
@@ -423,32 +414,22 @@
             updateTween();
             controls.update();
             renderer.render(scene, camera);
-    
             const svg = document.getElementById('line-canvas');
             if(svg) svg.innerHTML = ''; 
-
             labelElements.forEach(item => {
                 const rawPos = item.pos.clone().project(camera);
                 const startX = (rawPos.x * 0.5 + 0.5) * window.innerWidth;
                 const startY = (-(rawPos.y) * 0.5 + 0.5) * window.innerHeight;
-                
-                const offsetX = 60; 
-                const endX = startX + offsetX;
+                const endX = startX + 60;
                 const endY = startY - 60;
-
                 item.div.style.left = `${endX}px`;
                 item.div.style.top = `${endY}px`;
-                item.div.style.transform = `translate(-50%, -50%)`;
                 item.div.style.display = (rawPos.z > 1) ? 'none' : 'block';
-
                 if (item.div.style.display === 'block' && svg) {
                     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                    line.setAttribute('x1', startX);
-                    line.setAttribute('y1', startY);
-                    line.setAttribute('x2', endX);
-                    line.setAttribute('y2', endY);
-                    line.setAttribute('stroke', 'rgba(255,255,255,0.4)');
-                    line.setAttribute('stroke-width', '1.5');
+                    line.setAttribute('x1', startX); line.setAttribute('y1', startY);
+                    line.setAttribute('x2', endX); line.setAttribute('y2', endY);
+                    line.setAttribute('stroke', 'rgba(255,255,255,0.4)'); line.setAttribute('stroke-width', '1.5');
                     svg.appendChild(line);
                 }
             });
@@ -463,5 +444,3 @@
     </script>
 </body>
 </html>
-
-
