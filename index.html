@@ -10,7 +10,7 @@
         
         #container { 
             position: relative; width: 100vw; height: 100vh; display: flex; 
-            overflow: hidden; /* 防止滾動條出現 */
+            overflow: hidden; 
         }
 
         /* 指引線畫布 */
@@ -57,41 +57,55 @@
             cursor: pointer; z-index: 1000; pointer-events: auto;
         }
 
-        /* 資訊彈窗 (Modal) */
+        /* === 第一層資訊彈窗 (Level 1) === */
         #message-box {
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            width: 400px;
-            max-width: 90vw;
+            width: 400px; max-width: 90vw;
             background: rgba(20, 20, 20, 0.95);
             border: 1px solid var(--primary);
             border-radius: 10px;
             padding: 0;
-            z-index: 2000;
+            z-index: 2000; /* 層級 2000 */
             display: none;
             box-shadow: 0 0 30px rgba(0,0,0,0.8);
             overflow: hidden;
             animation: fadeIn 0.3s ease-out;
         }
 
-        /* 彈窗內的圖片區域 */
         #msg-img-container {
-            width: 100%;
-            height: 200px;
-            background: #333;
-            overflow: hidden;
-            position: relative;
-            display: none; /* 預設隱藏，有圖才開 */
+            width: 100%; height: 200px; background: #333; overflow: hidden; position: relative; display: none;
         }
-
-        #msg-img {
-            width: 100%; height: 100%; object-fit: cover; display: block;
-        }
-
+        #msg-img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .msg-body { padding: 20px; }
         #msg-title { margin-top: 0; color: var(--primary); font-size: 22px; border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 10px; }
         #msg-content { line-height: 1.6; color: #ddd; font-size: 15px; margin: 0; }
+
+        /* 詳細按鈕樣式 */
+        #btn-more-info {
+            display: none; width: 100%; margin-top: 15px; padding: 10px;
+            background: var(--primary); color: white; border: none;
+            border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: bold;
+            transition: 0.2s;
+        }
+        #btn-more-info:hover { background: #2980b9; }
+
+        /* === 第二層資訊彈窗 (Level 2 - 詳細構造) === */
+        #message-box-level2 {
+            position: absolute;
+            top: 55%; left: 55%; /* 故意稍微錯開，讓使用者知道是疊在上面的 */
+            transform: translate(-50%, -50%);
+            width: 350px; max-width: 85vw;
+            background: rgba(35, 35, 35, 0.98); /* 深一點的顏色 */
+            border: 1px solid #e67e22; /* 橘色邊框區分 */
+            border-radius: 10px;
+            z-index: 2100; /* ★ 重點：比第一層大，所以會疊在上面 */
+            display: none;
+            box-shadow: 0 0 40px rgba(0,0,0,1);
+            animation: fadeIn 0.3s ease-out;
+            padding: 20px;
+        }
 
         .close-btn {
             position: absolute; top: 10px; right: 10px;
@@ -136,14 +150,22 @@
         <div id="labels-container"></div>
 
         <div id="message-box">
-            <button class="close-btn" onclick="this.parentElement.style.display='none'">✕</button>
+            <button class="close-btn" onclick="this.parentElement.style.display='none'; document.getElementById('message-box-level2').style.display='none';">✕</button>
             <div id="msg-img-container">
                 <img id="msg-img" src="" alt="部位圖片">
             </div>
             <div class="msg-body">
                 <h3 id="msg-title">標題</h3>
                 <p id="msg-content">內容描述...</p>
+                <button id="btn-more-info">🔍 查看詳細構造拆解</button>
             </div>
+        </div>
+
+        <div id="message-box-level2">
+            <button class="close-btn" onclick="this.parentElement.style.display='none'">✕</button>
+            <h3 id="msg-title-2" style="margin-top:0; color:#e67e22; border-bottom:1px solid #555; padding-bottom:10px;">詳細構造</h3>
+            <img id="msg-img-2" src="" style="width:100%; border-radius:5px; margin:10px 0; display:none;">
+            <p id="msg-content-2" style="color:#ddd; line-height:1.6; font-size:14px; margin:0;">更多細節...</p>
         </div>
 
         <div id="debug-tool">
@@ -161,11 +183,9 @@
         import * as THREE from 'three';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        
-        // 修正：使用解構匯入，避免版本相容性問題
         import { Tween, Easing, update as updateTween } from 'https://unpkg.com/@tweenjs/tween.js@23.1.1/dist/tween.esm.js';
 
-        // 1. 資料庫
+        // 1. 資料庫設定
         const allData = [
             {
                 id: "helmet",
@@ -175,8 +195,7 @@
                 points: [
                     { title: "帽殼狀態", text: "檢查是否有龜裂或遭受撞擊之白化痕跡。", pos: { x: 0.007, y: 0.249, z: -0.028 } },
                     { title: "頤帶扣環", text: "確認扣環是否牢固，無斷裂痕跡。", pos: { x: 0.105, y: -0.101, z: -0.016 } },
-                    { title: "內襯", text: "檢查緩衝材質是否老化、龜裂。", pos: { x: -0.123, y: 0.161, z: -0.017 } },
-                    { title: "帽緣/帽沿", text: "確認無變形或缺損。", pos: { x: 0.007, y: 0.015, z: 0.207 } }
+                    { title: "內襯", text: "檢查緩衝材質是否老化、龜裂。", pos: { x: -0.123, y: 0.161, z: -0.017 } }
                 ]
             },
             {
@@ -187,25 +206,34 @@
                 points: [
                     { 
                         title: "壓力錶指針", 
-                        text: "【正常範圍】：指針必須位於綠色區塊。\n【異常】：偏左(黃色)代表壓力不足，需送檢填充；偏右(紅色)代表壓力過大，有爆裂風險。", 
-                        img: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Pressure_gauge_of_fire_extinguisher.jpg/640px-Pressure_gauge_of_fire_extinguisher.jpg",
-                        pos: { x: -0.005, y: 0.208, z: 0.054 } 
+                        text: "【正常範圍】：指針必須位於綠色區塊。\n【異常】：偏左(黃色)代表壓力不足；偏右(紅色)代表壓力過大。", 
+                        // ★★★ 這裡就是連結本地圖片的地方 ★★★
+                        // 請確保你的 images 資料夾裡面有 gauge.jpg
+                        img: "./images/gauge.jpg", 
+                        pos: { x: -0.005, y: 0.208, z: 0.054 },
+                        
+                        // ★★★ 這裡設定第二層彈窗的內容 ★★★
+                        detail: {
+                            title: "壓力錶內部構造",
+                            text: "壓力錶內部由波登管(Bourdon tube)組成。當氣體壓力進入時，銅管會像吹捲笛一樣拉直，帶動齒輪轉動指針。若是受潮生鏽，會導致齒輪卡死。",
+                            // 如果第二層也要圖片，也可以放： img: "./images/gauge_inner.jpg"
+                        }
                     },
                     { 
                         title: "安全插梢", 
-                        text: "用途：防止誤觸發。\n檢查重點：確認插梢是否固定完好，鉛封(封條)必須未脫落、未斷裂。", 
-                        img: "https://thumbs.dreamstime.com/b/safety-pin-red-fire-extinguisher-close-up-169036733.jpg", 
+                        text: "用途：防止誤觸發。檢查重點：確認插梢是否固定完好，鉛封(封條)必須未脫落。", 
+                        img: "https://thumbs.dreamstime.com/b/safety-pin-red-fire-extinguisher-close-up-169036733.jpg", // 這是網路圖片
                         pos: { x: 0.031, y: 0.232, z: 0.022 } 
                     },
                     { 
                         title: "瓶身狀態", 
                         text: "每三年需進行水壓測試。檢查重點：有無嚴重生鏽、腐蝕或變形。", 
-                        img: "", 
+                        img: "", // 沒圖片就留空
                         pos: { x: 0.045, y: -0.005, z: 0.057 } 
                     },
                     { 
                         title: "皮管與噴嘴", 
-                        text: "檢查重點：確認無龜裂、老化或阻塞。使用時應握住噴嘴前端。", 
+                        text: "檢查重點：確認無龜裂、老化或阻塞。", 
                         img: "https://media.istockphoto.com/id/175435985/photo/fire-extinguisher-hose.jpg?s=612x612&w=0&k=20&c=GzWJ6Z-I_fQ_1BvTjQW8qJk_wXNn7W_1qV_2r_3t_4=",
                         pos: { x: -0.068, y: -0.067, z: -0.052 } 
                     }
@@ -225,9 +253,7 @@
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
-        
-        const canvasWrapper = document.getElementById('canvas-wrapper');
-        canvasWrapper.appendChild(renderer.domElement);
+        document.getElementById('canvas-wrapper').appendChild(renderer.domElement);
 
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
@@ -239,7 +265,6 @@
 
         const loader = new GLTFLoader();
 
-        // 自動導覽功能：避免穿透模型的平滑移動
         function focusOnPoint(targetPos) {
             const target = new THREE.Vector3(targetPos.x, targetPos.y, targetPos.z);
             const direction = target.clone().normalize();
@@ -249,9 +274,7 @@
             new Tween(camera.position)
                 .to({ x: newCamPos.x, y: newCamPos.y, z: newCamPos.z }, 1200)
                 .easing(Easing.Cubic.Out)
-                .onUpdate(() => {
-                    camera.lookAt(target);
-                })
+                .onUpdate(() => camera.lookAt(target))
                 .start();
 
             new Tween(controls.target)
@@ -260,25 +283,55 @@
                 .start();
         }
 
-        // 顯示訊息功能 (支援圖片)
-        function showMessage(title, text, pos, imgUrl) {
+        // ★★★ 核心功能：顯示第一層與第二層視窗 ★★★
+        function showMessage(pointData) {
             const box = document.getElementById('message-box');
             const imgTag = document.getElementById('msg-img');
             const imgContainer = document.getElementById('msg-img-container');
+            const btnMore = document.getElementById('btn-more-info');
+            
+            // 每次打開新視窗時，先把第二層關掉，避免混亂
+            document.getElementById('message-box-level2').style.display = 'none';
 
-            document.getElementById('msg-title').innerText = title;
-            document.getElementById('msg-content').innerText = text;
+            // 1. 填入第一層內容
+            document.getElementById('msg-title').innerText = pointData.title;
+            document.getElementById('msg-content').innerText = pointData.text;
 
-            if (imgUrl && imgUrl !== "") {
-                imgTag.src = imgUrl;
+            // 處理圖片
+            if (pointData.img && pointData.img !== "") {
+                imgTag.src = pointData.img;
                 imgContainer.style.display = 'block';
             } else {
                 imgTag.src = "";
                 imgContainer.style.display = 'none';
             }
 
-            box.style.display = 'block';
-            if (pos) focusOnPoint(pos);
+            // 2. 判斷是否有「詳細資料 (detail)」，有的話顯示按鈕
+            if (pointData.detail) {
+                btnMore.style.display = 'block'; // 顯示按鈕
+                
+                // 設定按鈕點擊事件：打開第二層視窗
+                btnMore.onclick = () => {
+                    const box2 = document.getElementById('message-box-level2');
+                    document.getElementById('msg-title-2').innerText = pointData.detail.title;
+                    document.getElementById('msg-content-2').innerText = pointData.detail.text;
+                    
+                    const img2 = document.getElementById('msg-img-2');
+                    if (pointData.detail.img) {
+                        img2.src = pointData.detail.img;
+                        img2.style.display = 'block';
+                    } else {
+                        img2.style.display = 'none';
+                    }
+                    
+                    box2.style.display = 'block'; // 顯示第二層
+                };
+            } else {
+                btnMore.style.display = 'none'; // 沒詳細資料就隱藏按鈕
+            }
+
+            box.style.display = 'block'; // 顯示第一層
+            if (pointData.pos) focusOnPoint(pointData.pos);
         }
 
         function loadObject(data) {
@@ -286,6 +339,7 @@
             document.getElementById('labels-container').innerHTML = "";
             document.getElementById('parts-list').innerHTML = "";
             document.getElementById('message-box').style.display = 'none';
+            document.getElementById('message-box-level2').style.display = 'none';
             labelElements.length = 0;
 
             loader.load(data.file, (gltf) => {
@@ -299,22 +353,20 @@
                 scene.add(loadedModel);
 
                 data.points.forEach((p, i) => {
-                    // 左側選單
+                    // 左側列表
                     const item = document.createElement('div');
                     item.className = 'part-item';
                     item.innerText = `${i+1}. ${p.title}`;
-                    // 修正：補上 p.img 參數
-                    item.onclick = () => showMessage(p.title, p.text, p.pos, p.img);
+                    item.onclick = () => showMessage(p); // 傳入整個物件
                     document.getElementById('parts-list').appendChild(item);
 
                     // 3D 標籤
                     const label = document.createElement('div');
                     label.className = 'annotation';
                     label.innerText = i + 1;
-                    // 修正：補上 p.img 參數
                     label.onclick = (e) => {
                         e.stopPropagation();
-                        showMessage(p.title, p.text, p.pos, p.img);
+                        showMessage(p); // 傳入整個物件
                     };
                     document.getElementById('labels-container').appendChild(label);
                     labelElements.push({ div: label, pos: new THREE.Vector3(p.pos.x, p.pos.y, p.pos.z) });
@@ -322,7 +374,6 @@
             });
         }
 
-        // 初始化選單
         allData.forEach(obj => {
             const btn = document.createElement('button');
             btn.className = 'model-btn';
@@ -341,7 +392,6 @@
             new Tween(controls.target).to({ x: 0, y: 0, z: 0 }, 800).start();
         };
 
-        // 啟動第一個模型
         document.querySelector('.model-btn').click();
 
         // 座標偵測工具
@@ -365,7 +415,7 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            updateTween(); // 修正：呼叫解構出來的 update 函數
+            updateTween();
             controls.update();
             renderer.render(scene, camera);
     
@@ -378,9 +428,8 @@
                 const startY = (-(rawPos.y) * 0.5 + 0.5) * window.innerHeight;
                 
                 const offsetX = 60; 
-                const offsetY = -60;
                 const endX = startX + offsetX;
-                const endY = startY + offsetY;
+                const endY = startY - 60;
 
                 item.div.style.left = `${endX}px`;
                 item.div.style.top = `${endY}px`;
