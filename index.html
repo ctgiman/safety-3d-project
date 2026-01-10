@@ -7,7 +7,11 @@
     <style>
         :root { --primary: #3498db; --bg: #1a1a1a; --panel: rgba(30, 30, 30, 0.95); }
         body { margin: 0; font-family: 'Microsoft JhengHei', sans-serif; background: #000; color: white; overflow: hidden; }
-        #container { position: relative; width: 100vw; height: 100vh; display: flex; }
+        
+        #container { 
+            position: relative; width: 100vw; height: 100vh; display: flex; 
+            overflow: hidden; /* 防止滾動條出現 */
+        }
 
         /* 指引線畫布 */
         #line-canvas {
@@ -53,48 +57,42 @@
             cursor: pointer; z-index: 1000; pointer-events: auto;
         }
 
-            /* 下方訊息視窗 */
-           /* 資訊彈窗 (Modal) */
+        /* 資訊彈窗 (Modal) */
         #message-box {
             position: absolute;
             top: 50%; left: 50%;
-            transform: translate(-50%, -50%); /* 絕對置中 */
+            transform: translate(-50%, -50%);
             width: 400px;
-            max-width: 90vw; /* 手機版不超出版面 */
-            background: rgba(20, 20, 20, 0.95); /* 深色背景 */
+            max-width: 90vw;
+            background: rgba(20, 20, 20, 0.95);
             border: 1px solid var(--primary);
             border-radius: 10px;
-            padding: 0; /* 內距交給內部元素 */
+            padding: 0;
             z-index: 2000;
-            display: none; /* 預設隱藏 */
+            display: none;
             box-shadow: 0 0 30px rgba(0,0,0,0.8);
-            overflow: hidden; /* 讓圖片圓角不溢出 */
+            overflow: hidden;
             animation: fadeIn 0.3s ease-out;
         }
 
         /* 彈窗內的圖片區域 */
         #msg-img-container {
             width: 100%;
-            height: 200px; /* 固定圖片高度 */
+            height: 200px;
             background: #333;
             overflow: hidden;
             position: relative;
+            display: none; /* 預設隱藏，有圖才開 */
         }
 
         #msg-img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover; /* 保持比例填滿，不會變形 */
-            display: block;
+            width: 100%; height: 100%; object-fit: cover; display: block;
         }
 
-        /* 彈窗內容區域 */
         .msg-body { padding: 20px; }
-
         #msg-title { margin-top: 0; color: var(--primary); font-size: 22px; border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 10px; }
-        #msg-content { line-height: 1.6; color: #ddd; font-size: 15px; }
+        #msg-content { line-height: 1.6; color: #ddd; font-size: 15px; margin: 0; }
 
-        /* 關閉按鈕 */
         .close-btn {
             position: absolute; top: 10px; right: 10px;
             background: rgba(0,0,0,0.5); border: none; color: white;
@@ -134,13 +132,18 @@
             <div id="cat-fire"></div>
         </div>
 
-        <div id="canvas-wrapper" style="width:100%; height:100%;"></div>
+        <div id="canvas-wrapper" style="flex: 1; width: 100%; height: 100%;"></div>
         <div id="labels-container"></div>
 
         <div id="message-box">
-            <button onclick="this.parentElement.style.display='none'" style="float:right; background:none; border:none; color:white; cursor:pointer; font-size:20px;">✕</button>
-            <h3 id="msg-title" style="margin-top:0; color:var(--primary);">標題</h3>
-            <p id="msg-content" style="line-height:1.6; margin-bottom:0;"></p>
+            <button class="close-btn" onclick="this.parentElement.style.display='none'">✕</button>
+            <div id="msg-img-container">
+                <img id="msg-img" src="" alt="部位圖片">
+            </div>
+            <div class="msg-body">
+                <h3 id="msg-title">標題</h3>
+                <p id="msg-content">內容描述...</p>
+            </div>
         </div>
 
         <div id="debug-tool">
@@ -158,8 +161,9 @@
         import * as THREE from 'three';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        // 修正後的匯入方式
-        import * as TWEEN from 'https://unpkg.com/@tweenjs/tween.js@23.1.1/dist/tween.esm.js';
+        
+        // 修正：使用解構匯入，避免版本相容性問題
+        import { Tween, Easing, update as updateTween } from 'https://unpkg.com/@tweenjs/tween.js@23.1.1/dist/tween.esm.js';
 
         // 1. 資料庫
         const allData = [
@@ -181,35 +185,33 @@
                 name: "乾粉滅火器",
                 file: "./models/fireextinguisher.glb",
                 points: [
-                { 
-                    title: "壓力錶指針", 
-                    text: "【正常範圍】：指針必須位於綠色區塊。\n【異常】：偏左(黃色)代表壓力不足，需送檢填充；偏右(紅色)代表壓力過大，有爆裂風險。", 
-                    img: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Pressure_gauge_of_fire_extinguisher.jpg/640px-Pressure_gauge_of_fire_extinguisher.jpg", // 這裡放圖片網址
-                    pos: { x: -0.005, y: 0.208, z: 0.054 } 
-                },
-                { 
-                    title: "安全插梢", 
-                    text: "用途：防止誤觸發。\n檢查重點：確認插梢是否固定完好，鉛封(封條)必須未脫落、未斷裂。", 
-                    img: "https://thumbs.dreamstime.com/b/safety-pin-red-fire-extinguisher-close-up-169036733.jpg", 
-                    pos: { x: 0.031, y: 0.232, z: 0.022 } 
-                },
-                { 
-                    title: "瓶身狀態", 
-                    text: "每三年需進行水壓測試。檢查重點：有無嚴重生鏽、腐蝕或變形。", 
-                    // 如果沒有圖片，這欄可以不寫，或留空字串 ""，程式會自動只顯示文字
-                    img: "", 
-                    pos: { x: 0.038, y: -0.142, z: 0.001 } 
-                },
-                { 
-                    title: "皮管與噴嘴", 
-                    text: "檢查重點：確認無龜裂、老化或阻塞。使用時應握住噴嘴前端。", 
-                    img: "https://media.istockphoto.com/id/175435985/photo/fire-extinguisher-hose.jpg?s=612x612&w=0&k=20&c=GzWJ6Z-I_fQ_1BvTjQW8qJk_wXNn7W_1qV_2r_3t_4=",
-                    pos: { x: -0.068, y: -0.067, z: -0.052 } 
-                }
-            ]
-        },
-        // ... 安全帽的資料也可以如法炮製 ...
-    ];
+                    { 
+                        title: "壓力錶指針", 
+                        text: "【正常範圍】：指針必須位於綠色區塊。\n【異常】：偏左(黃色)代表壓力不足，需送檢填充；偏右(紅色)代表壓力過大，有爆裂風險。", 
+                        img: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Pressure_gauge_of_fire_extinguisher.jpg/640px-Pressure_gauge_of_fire_extinguisher.jpg",
+                        pos: { x: -0.005, y: 0.208, z: 0.054 } 
+                    },
+                    { 
+                        title: "安全插梢", 
+                        text: "用途：防止誤觸發。\n檢查重點：確認插梢是否固定完好，鉛封(封條)必須未脫落、未斷裂。", 
+                        img: "https://thumbs.dreamstime.com/b/safety-pin-red-fire-extinguisher-close-up-169036733.jpg", 
+                        pos: { x: 0.031, y: 0.232, z: 0.022 } 
+                    },
+                    { 
+                        title: "瓶身狀態", 
+                        text: "每三年需進行水壓測試。檢查重點：有無嚴重生鏽、腐蝕或變形。", 
+                        img: "", 
+                        pos: { x: 0.045, y: -0.005, z: 0.057 } 
+                    },
+                    { 
+                        title: "皮管與噴嘴", 
+                        text: "檢查重點：確認無龜裂、老化或阻塞。使用時應握住噴嘴前端。", 
+                        img: "https://media.istockphoto.com/id/175435985/photo/fire-extinguisher-hose.jpg?s=612x612&w=0&k=20&c=GzWJ6Z-I_fQ_1BvTjQW8qJk_wXNn7W_1qV_2r_3t_4=",
+                        pos: { x: -0.068, y: -0.067, z: -0.052 } 
+                    }
+                ]
+            }
+        ];
 
         // 2. 初始化場景
         let loadedModel = null;
@@ -223,7 +225,9 @@
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
-        document.getElementById('canvas-wrapper').appendChild(renderer.domElement);
+        
+        const canvasWrapper = document.getElementById('canvas-wrapper');
+        canvasWrapper.appendChild(renderer.domElement);
 
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
@@ -235,54 +239,45 @@
 
         const loader = new GLTFLoader();
 
-        // 自動導覽功能：相機平滑移動
-      // 自動導覽功能：避免穿透模型的平滑移動
-function focusOnPoint(targetPos) {
-    const target = new THREE.Vector3(targetPos.x, targetPos.y, targetPos.z);
-    
-    // 1. 計算從中心到目標點的向量，並將其標準化 (代表該點的「方向」)
-    const direction = target.clone().normalize();
-    
-    // 2. 設定一個「安全平面」的距離 (例如 0.4 單位)，這能保證相機在模型外
-    const safetyDistance = 0.5; 
-    const newCamPos = direction.multiplyScalar(safetyDistance);
+        // 自動導覽功能：避免穿透模型的平滑移動
+        function focusOnPoint(targetPos) {
+            const target = new THREE.Vector3(targetPos.x, targetPos.y, targetPos.z);
+            const direction = target.clone().normalize();
+            const safetyDistance = 0.5; 
+            const newCamPos = direction.multiplyScalar(safetyDistance);
 
-    // 3. 執行相機移動動畫
-    new TWEEN.Tween(camera.position)
-        .to({ x: newCamPos.x, y: newCamPos.y, z: newCamPos.z }, 1200) // 稍微放慢一點點
-        .easing(TWEEN.Easing.Cubic.Out) // 使用更平滑的 Cubic 曲線
-        .onUpdate(() => {
-            // 在移動過程中，相機始終盯著目標，避免亂晃
-            camera.lookAt(target);
-        })
-        .start();
+            new Tween(camera.position)
+                .to({ x: newCamPos.x, y: newCamPos.y, z: newCamPos.z }, 1200)
+                .easing(Easing.Cubic.Out)
+                .onUpdate(() => {
+                    camera.lookAt(target);
+                })
+                .start();
 
-    // 4. 同時更新 OrbitControls 的中心點，讓後續手動旋轉是以該點為中心
-    new TWEEN.Tween(controls.target)
-        .to({ x: target.x, y: target.y, z: target.z }, 1000)
-        .easing(TWEEN.Easing.Quadratic.Out)
-        .start();
-}
+            new Tween(controls.target)
+                .to({ x: target.x, y: target.y, z: target.z }, 1000)
+                .easing(Easing.Quadratic.Out)
+                .start();
+        }
+
+        // 顯示訊息功能 (支援圖片)
         function showMessage(title, text, pos, imgUrl) {
             const box = document.getElementById('message-box');
             const imgTag = document.getElementById('msg-img');
             const imgContainer = document.getElementById('msg-img-container');
 
-            // 設定標題與文字
             document.getElementById('msg-title').innerText = title;
             document.getElementById('msg-content').innerText = text;
 
-            // 設定圖片邏輯
-            if (imgUrl) {
+            if (imgUrl && imgUrl !== "") {
                 imgTag.src = imgUrl;
-                imgContainer.style.display = 'block'; // 有圖就顯示
+                imgContainer.style.display = 'block';
             } else {
-                imgContainer.style.display = 'none'; // 沒圖就把圖片框藏起來，只顯示文字
+                imgTag.src = "";
+                imgContainer.style.display = 'none';
             }
 
             box.style.display = 'block';
-
-            // 觸發相機導覽
             if (pos) focusOnPoint(pos);
         }
 
@@ -304,18 +299,22 @@ function focusOnPoint(targetPos) {
                 scene.add(loadedModel);
 
                 data.points.forEach((p, i) => {
+                    // 左側選單
                     const item = document.createElement('div');
                     item.className = 'part-item';
                     item.innerText = `${i+1}. ${p.title}`;
-                    item.onclick = () => showMessage(p.title, p.text, p.pos);
+                    // 修正：補上 p.img 參數
+                    item.onclick = () => showMessage(p.title, p.text, p.pos, p.img);
                     document.getElementById('parts-list').appendChild(item);
 
+                    // 3D 標籤
                     const label = document.createElement('div');
                     label.className = 'annotation';
                     label.innerText = i + 1;
+                    // 修正：補上 p.img 參數
                     label.onclick = (e) => {
                         e.stopPropagation();
-                        showMessage(p.title, p.text, p.pos);
+                        showMessage(p.title, p.text, p.pos, p.img);
                     };
                     document.getElementById('labels-container').appendChild(label);
                     labelElements.push({ div: label, pos: new THREE.Vector3(p.pos.x, p.pos.y, p.pos.z) });
@@ -323,7 +322,7 @@ function focusOnPoint(targetPos) {
             });
         }
 
-        // 初始化右側選單
+        // 初始化選單
         allData.forEach(obj => {
             const btn = document.createElement('button');
             btn.className = 'model-btn';
@@ -338,13 +337,14 @@ function focusOnPoint(targetPos) {
         });
 
         document.getElementById('reset-btn').onclick = () => {
-            new TWEEN.Tween(camera.position).to({ x: 0.8, y: 0.5, z: 0.8 }, 800).start();
-            new TWEEN.Tween(controls.target).to({ x: 0, y: 0, z: 0 }, 800).start();
+            new Tween(camera.position).to({ x: 0.8, y: 0.5, z: 0.8 }, 800).start();
+            new Tween(controls.target).to({ x: 0, y: 0, z: 0 }, 800).start();
         };
 
+        // 啟動第一個模型
         document.querySelector('.model-btn').click();
 
-        // 座標偵測
+        // 座標偵測工具
         window.addEventListener('mousedown', (event) => {
             if (!loadedModel) return;
             const mouse = new THREE.Vector2(
@@ -365,21 +365,18 @@ function focusOnPoint(targetPos) {
 
         function animate() {
             requestAnimationFrame(animate);
-            TWEEN.update(); // 處理相機動畫
+            updateTween(); // 修正：呼叫解構出來的 update 函數
             controls.update();
             renderer.render(scene, camera);
     
             const svg = document.getElementById('line-canvas');
-            svg.innerHTML = ''; 
+            if(svg) svg.innerHTML = ''; 
 
             labelElements.forEach(item => {
                 const rawPos = item.pos.clone().project(camera);
-                
-                // A. 原始位置 (模型上的點)
                 const startX = (rawPos.x * 0.5 + 0.5) * window.innerWidth;
                 const startY = (-(rawPos.y) * 0.5 + 0.5) * window.innerHeight;
                 
-                // B. 標籤位置 (稍微偏移讓出空間)
                 const offsetX = 60; 
                 const offsetY = -60;
                 const endX = startX + offsetX;
@@ -390,8 +387,7 @@ function focusOnPoint(targetPos) {
                 item.div.style.transform = `translate(-50%, -50%)`;
                 item.div.style.display = (rawPos.z > 1) ? 'none' : 'block';
 
-                // 畫指引線
-                if (item.div.style.display === 'block') {
+                if (item.div.style.display === 'block' && svg) {
                     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
                     line.setAttribute('x1', startX);
                     line.setAttribute('y1', startY);
@@ -413,7 +409,3 @@ function focusOnPoint(targetPos) {
     </script>
 </body>
 </html>
-
-
-
-
