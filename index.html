@@ -386,6 +386,30 @@
                 .easing(Easing.Quadratic.Out)
                 .start();
         }
+        function focusWithView(pointData) {
+    if (pointData.view && pointData.view.cam && pointData.view.target) {
+        new Tween(camera.position)
+            .to({
+                x: pointData.view.cam.x,
+                y: pointData.view.cam.y,
+                z: pointData.view.cam.z
+            }, 1000)
+            .easing(Easing.Cubic.Out)
+            .start();
+
+        new Tween(controls.target)
+            .to({
+                x: pointData.view.target.x,
+                y: pointData.view.target.y,
+                z: pointData.view.target.z
+            }, 800)
+            .easing(Easing.Quadratic.Out)
+            .start();
+    } else if (pointData.pos) {
+        focusOnPoint(pointData.pos);
+    }
+}
+
 
         // 核心功能：顯示訊息
         function showMessage(pointData) {
@@ -401,11 +425,14 @@
 
             // 圖片邏輯處理
             if (pointData.img && pointData.img !== "") {
+                imgTag.style.display = 'block';   // ← 關鍵
                 imgTag.src = pointData.img;
                 imgContainer.style.display = 'block';
             } else {
+                imgTag.style.display = 'none';
                 imgContainer.style.display = 'none';
             }
+
 
             // 詳細按鈕邏輯
             if (pointData.detail) {
@@ -428,7 +455,7 @@
             }
 
             box.style.display = 'block';
-            if (pointData.pos) focusOnPoint(pointData.pos);
+            focusWithView(pointData);
         }
 
         // 核心功能：載入模型
@@ -682,6 +709,7 @@ window.addEventListener('mousedown', (event) => {
     </script>
 </body>
 </html>
+
 
 
 
