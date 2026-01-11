@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智慧工安互動教學系統 v2.0 (語音版)</title>
+    <title>智慧工安互動教學系統 v3.0 (最佳視角版)</title>
     <style>
         :root { --primary: #3498db; --accent: #e67e22; --bg: #1a1a1a; --panel: rgba(30, 30, 30, 0.95); }
         body { margin: 0; font-family: 'Microsoft JhengHei', sans-serif; background: #000; color: white; overflow: hidden; }
@@ -54,14 +54,12 @@
         .model-btn:hover { background: #444; }
         .model-btn.active { background: #2c3e50; border-left: 3px solid var(--primary); font-weight: bold; }
 
-        /* 功能按鈕區 */
         .control-group { display: flex; gap: 10px; margin-bottom: 20px; }
         #reset-btn, #sound-btn {
             flex: 1; padding: 12px; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.3s;
             display: flex; justify-content: center; align-items: center; gap: 5px;
         }
         #reset-btn { background: var(--accent); }
-        #reset-btn:hover { background: #d35400; }
         #sound-btn { background: #27ae60; }
         #sound-btn.muted { background: #7f8c8d; }
 
@@ -75,22 +73,49 @@
         }
         .annotation:hover { transform: scale(1.2); background: #ff5722; }
 
-        /* 彈窗 */
+        /* ★★★ 修改後的彈窗：位置改到右側，不擋中間 ★★★ */
         #message-box {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 420px; max-width: 90vw; background: rgba(20, 20, 20, 0.98);
-            border: 1px solid var(--primary); border-radius: 8px; padding: 0;
-            z-index: 2000; display: none; box-shadow: 0 0 40px rgba(0,0,0,0.8);
-            animation: fadeIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            position: absolute; 
+            top: 50%; 
+            right: 320px; /* 距離右邊選單一點距離 */
+            transform: translateY(-50%) translateX(20px); /* 初始動畫位置 */
+            width: 350px; 
+            max-width: 30vw; 
+            background: rgba(20, 20, 20, 0.95);
+            border: 1px solid var(--primary); 
+            border-left: 5px solid var(--primary); /* 左側加強線條 */
+            border-radius: 8px; 
+            z-index: 2000; 
+            display: none; 
+            box-shadow: -10px 10px 30px rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
         }
-        #msg-img-container { width: 100%; height: 220px; background: #000; display: none; border-bottom: 1px solid #333; }
-        #msg-img { width: 100%; height: 100%; object-fit: contain; display: block; }
-        .msg-body { padding: 25px; }
-        #msg-title { margin-top: 0; color: var(--primary); font-size: 24px; border-bottom: 1px solid #444; padding-bottom: 12px; margin-bottom: 15px; }
-        #msg-content { line-height: 1.7; color: #ccc; font-size: 15px; margin: 0; white-space: pre-line; }
+        /* 顯示時的狀態類別 */
+        #message-box.active {
+            opacity: 1;
+            transform: translateY(-50%) translateX(0);
+        }
+
+        #msg-img-container { width: 100%; height: 200px; background: #000; display: none; border-bottom: 1px solid #333; overflow: hidden; border-radius: 8px 8px 0 0; }
+        #msg-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
+        #msg-img:hover { transform: scale(1.1); }
+        
+        .msg-body { padding: 25px; position: relative; }
+        .close-btn {
+            position: absolute; top: 10px; right: 10px;
+            background: rgba(255,255,255,0.1); border: none; color: white;
+            width: 28px; height: 28px; border-radius: 50%;
+            cursor: pointer; font-weight: bold; transition: 0.2s;
+        }
+        .close-btn:hover { background: #c0392b; }
+
+        #msg-title { margin-top: 0; color: var(--primary); font-size: 22px; border-bottom: 1px solid #444; padding-bottom: 12px; margin-bottom: 15px; display: flex; align-items: center; }
+        #msg-content { line-height: 1.8; color: #ddd; font-size: 15px; margin: 0; white-space: pre-line; text-align: justify; }
         
         #btn-more-info {
-            display: none; width: 100%; margin-top: 20px; padding: 12px;
+            display: none; width: 100%; margin-top: 20px; padding: 10px;
             background: linear-gradient(to right, var(--primary), #2980b9);
             color: white; border: none; border-radius: 5px; cursor: pointer;
             font-size: 14px; font-weight: bold; transition: 0.2s;
@@ -98,32 +123,16 @@
 
         /* 構造詳情彈窗 */
         #message-box-level2 {
-            position: absolute; top: 55%; left: 55%; transform: translate(-50%, -50%);
-            width: 380px; max-width: 85vw; background: #222; border: 1px solid var(--accent);
-            border-radius: 8px; z-index: 2100; display: none;
-            box-shadow: 0 0 50px rgba(0,0,0,0.9); padding: 25px;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 400px; background: #222; border: 1px solid var(--accent);
+            border-radius: 8px; z-index: 2100; display: none; padding: 25px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.9);
             animation: fadeIn 0.3s ease-out;
         }
+        @keyframes fadeIn { from { opacity: 0; transform: translate(-50%, -45%); } to { opacity: 1; transform: translate(-50%, -50%); } }
 
-        .close-btn {
-            position: absolute; top: 10px; right: 10px;
-            background: rgba(255,255,255,0.1); border: none; color: white;
-            width: 32px; height: 32px; border-radius: 50%;
-            cursor: pointer; font-weight: bold; z-index: 10; transition: 0.2s;
-        }
-        .close-btn:hover { background: #c0392b; }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translate(-50%, -45%) scale(0.95); }
-            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        }
-        
-        /* 播放動畫指示器 */
-        .speaking-indicator {
-            display: inline-block; width: 10px; height: 10px; background: #00ff00; border-radius: 50%;
-            animation: pulse 1s infinite; margin-left: 10px; display: none;
-        }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        .speaking-indicator { display: inline-block; width: 8px; height: 8px; background: #00ff00; border-radius: 50%; margin-left: 10px; animation: pulse 1s infinite; display: none; }
+        @keyframes pulse { 0% { opacity: 1; box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(0, 255, 0, 0); } 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); } }
     </style>
 </head>
 <body>
@@ -146,10 +155,9 @@
 
         <div id="right-panel">
             <div class="control-group">
-                <button id="reset-btn">🏠 重置</button>
+                <button id="reset-btn">🏠 重置視角</button>
                 <button id="sound-btn">🔊 語音: 開</button>
             </div>
-            
             <h2 style="margin:0 0 10px 0; font-size: 20px;">工安器材庫</h2>
             <div class="category-title">防護具類</div>
             <div id="cat-ppe"></div>
@@ -160,6 +168,10 @@
         <div id="canvas-wrapper" style="flex: 1; width: 100%; height: 100%;"></div>
         <div id="labels-container"></div>
 
+        <div id="controls-hint">
+            左鍵：旋轉場景 | 右鍵：平移 | 滾輪：縮放
+        </div>
+        
         <div id="message-box">
             <button class="close-btn" onclick="closeAllMessages()">✕</button>
             <div id="msg-img-container">
@@ -190,8 +202,7 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { Tween, Easing, update as updateTween } from 'https://unpkg.com/@tweenjs/tween.js@23.1.1/dist/tween.esm.js';
 
-        // ★★★ 這裡我把圖片換成了網路預設圖 (Via.placeholder)，避免你本地沒有圖片會報錯 ★★★
-        // 等你確認好本地 images 資料夾後，把網址改回 "./images/gauge.jpg" 即可
+        // 資料設定
         const allData = [
             {
                 id: "helmet",
@@ -213,7 +224,7 @@
                     { 
                         title: "1. 壓力錶 (Pressure Gauge)", 
                         text: "檢查重點：指針必須位於綠色區塊。綠色代表壓力正常，黃色或紅色代表異常，需要送修。", 
-                        img: "https://via.placeholder.com/400x300?text=Pressure+Gauge", // 暫時用網路圖
+                        img: "./images/gauge.jpg", // 暫時用網路圖
                         pos: { x: -0.005, y: 0.208, z: 0.054 },
                         detail: {
                             title: "壓力錶構造",
@@ -224,13 +235,13 @@
                     { 
                         title: "2. 安全插梢 (Safety Pin)", 
                         text: "檢查重點：確認插梢是否變形，以及鉛封是否完整。若鉛封斷裂，代表可能已被使用過。", 
-                        img: "https://via.placeholder.com/400x300?text=Safety+Pin",
+                        img: "./images/pin.jpg",
                         pos: { x: 0.031, y: 0.232, z: 0.022 } 
                     },
                     { 
                         title: "3. 皮管與噴嘴", 
                         text: "檢查重點：拿起皮管彎折檢查，確認無龜裂、老化。並檢查噴嘴口有無異物堵塞。", 
-                        img: "https://via.placeholder.com/400x300?text=Hose+Nozzle",
+                        img: "./images/Nozzle.jpg",
                         pos: { x: -0.068, y: -0.067, z: -0.052 } 
                     },
                     {
@@ -252,46 +263,36 @@
             }
         ];
 
-        // 語音設定
+
+        /* --- 語音功能 --- */
         let isSoundOn = true;
         const synth = window.speechSynthesis;
-
-        // 切換語音按鈕
         const soundBtn = document.getElementById('sound-btn');
         soundBtn.onclick = () => {
             isSoundOn = !isSoundOn;
-            if(isSoundOn) {
-                soundBtn.innerText = "🔊 語音: 開";
-                soundBtn.classList.remove('muted');
-            } else {
-                soundBtn.innerText = "🔇 語音: 關";
-                soundBtn.classList.add('muted');
-                synth.cancel(); // 立即停止說話
-            }
+            if(isSoundOn) { soundBtn.innerText = "🔊 語音: 開"; soundBtn.classList.remove('muted'); } 
+            else { soundBtn.innerText = "🔇 語音: 關"; soundBtn.classList.add('muted'); synth.cancel(); }
         };
 
         function speakText(text) {
             if (!isSoundOn) return;
-            synth.cancel(); // 打斷上一句
+            synth.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'zh-TW'; // 設定中文
-            utterance.rate = 1.0; // 語速
-            
+            utterance.lang = 'zh-TW';
             const icon = document.getElementById('speaking-icon');
-            utterance.onstart = () => { icon.style.display = 'inline-block'; };
-            utterance.onend = () => { icon.style.display = 'none'; };
-            
+            utterance.onstart = () => { if(icon) icon.style.display = 'inline-block'; };
+            utterance.onend = () => { if(icon) icon.style.display = 'none'; };
             synth.speak(utterance);
         }
 
-        /* Three.js 初始化 */
+        /* --- Three.js 初始化 --- */
         let loadedModel = null;
         const labelElements = [];
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x1a1a1a);
 
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-        camera.position.set(1, 0.8, 1);
+        camera.position.set(1.2, 0.8, 1.2); // 預設位置
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -301,28 +302,68 @@
 
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
 
+        // 燈光
         scene.add(new THREE.AmbientLight(0xffffff, 0.6));
         const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
         dirLight.position.set(5, 10, 7);
         scene.add(dirLight);
+        const backLight = new THREE.DirectionalLight(0x445566, 1); // 背光，增加立體感
+        backLight.position.set(-5, 5, -5);
+        scene.add(backLight);
 
         const loader = new GLTFLoader();
 
         window.closeAllMessages = () => {
-            document.getElementById('message-box').style.display = 'none';
+            const box = document.getElementById('message-box');
+            box.classList.remove('active');
+            setTimeout(() => { box.style.display = 'none'; }, 500); // 等動畫跑完再隱藏
             document.getElementById('message-box-level2').style.display = 'none';
-            synth.cancel(); // 關閉視窗時停止說話
+            synth.cancel();
+            
+            // 關閉時視角稍微退回一點點 (選用)
+            // new Tween(controls.target).to({x:0, y:0, z:0}, 1000).start();
         };
 
+        // ★★★ 核心改良：智慧聚焦函數 ★★★
+        // 目的：讓相機移動到物件的"正面"，但保持一段距離，並且稍微偏右，讓物件看起來在左邊
         function focusOnPoint(targetPos) {
             const target = new THREE.Vector3(targetPos.x, targetPos.y, targetPos.z);
-            const offset = camera.position.clone().sub(controls.target).normalize().multiplyScalar(0.4); 
-            const newCamPos = target.clone().add(offset);
-            if(newCamPos.y < target.y) newCamPos.y = target.y + 0.1;
+            const center = new THREE.Vector3(0, 0, 0); // 假設模型中心在 0,0,0
+            
+            // 1. 計算方向向量：從中心指向目標點 (這是"正面"的方向)
+            const direction = target.clone().sub(center).normalize();
+            
+            // 2. 決定相機距離：距離目標點 0.5 單位
+            const distance = 0.45;
+            
+            // 3. 計算理想相機位置：目標點 + 方向 * 距離
+            // 這保證了我們是"由外向內"看，而不是鑽到模型裡面
+            const newCamPos = target.clone().add(direction.multiplyScalar(distance));
+            
+            // 4. 微調高度：稍微抬高一點，俯視角度比較好
+            newCamPos.y += 0.05;
 
-            new Tween(camera.position).to({ x: newCamPos.x, y: newCamPos.y, z: newCamPos.z }, 1000).easing(Easing.Cubic.Out).start();
-            new Tween(controls.target).to({ x: target.x, y: target.y, z: target.z }, 800).easing(Easing.Quadratic.Out).start();
+            // ★★★ 關鍵點：偏移 Target ★★★
+            // 如果我們想要物體顯示在左邊，我們要把鏡頭的 Target 設在物體的"右邊"一點點
+            // 這樣相機就會為了看這個右邊的點，而把物體擠到左邊
+            // 我們利用 Cross Product 算出右側向量
+            const up = new THREE.Vector3(0, 1, 0);
+            const rightSide = new THREE.Vector3().crossVectors(direction, up).normalize().multiplyScalar(-0.15); // 負號代表往另一邊移
+            
+            const offsetTarget = target.clone().add(rightSide);
+
+            // 執行動畫
+            new Tween(camera.position)
+                .to({ x: newCamPos.x, y: newCamPos.y, z: newCamPos.z }, 1200) // 1.2秒平滑移動
+                .easing(Easing.Cubic.Out) // 減速曲線
+                .start();
+
+            new Tween(controls.target)
+                .to({ x: offsetTarget.x, y: offsetTarget.y, z: offsetTarget.z }, 1000)
+                .easing(Easing.Quadratic.Out)
+                .start();
         }
 
         function showMessage(pointData) {
@@ -331,16 +372,14 @@
             const imgContainer = document.getElementById('msg-img-container');
             const btnMore = document.getElementById('btn-more-info');
             
-            document.getElementById('message-box-level2').style.display = 'none';
-
-            // 設定文字
+            // 內容設定
             document.getElementById('msg-title').innerHTML = pointData.title + ' <span class="speaking-indicator" id="speaking-icon"></span>';
             document.getElementById('msg-content').innerText = pointData.text;
 
-            // 觸發語音
+            // 語音
             speakText(pointData.title + "。" + pointData.text);
 
-            // 圖片處理 (增加 onerror 防止 404 破圖)
+            // 圖片
             if (pointData.img && pointData.img !== "") {
                 imgTag.src = pointData.img;
                 imgTag.onerror = function() { this.style.display='none'; imgContainer.style.display='none'; };
@@ -350,6 +389,7 @@
                 imgContainer.style.display = 'none';
             }
 
+            // 更多按鈕
             if (pointData.detail) {
                 btnMore.style.display = 'block';
                 btnMore.onclick = () => {
@@ -357,21 +397,22 @@
                     document.getElementById('msg-title-2').innerText = pointData.detail.title;
                     document.getElementById('msg-content-2').innerText = pointData.detail.text;
                     const img2 = document.getElementById('msg-img-2');
-                    if (pointData.detail.img) { 
-                        img2.src = pointData.detail.img; 
-                        img2.style.display = 'block';
-                        img2.onerror = function() { this.style.display='none'; };
-                    } else { 
-                        img2.style.display = 'none'; 
-                    }
+                    if(pointData.detail.img) img2.src = pointData.detail.img;
+                    img2.style.display = pointData.detail.img ? 'block' : 'none';
                     box2.style.display = 'block';
-                    speakText("補充說明：" + pointData.detail.text); // 詳細內容也朗讀
+                    speakText("補充說明：" + pointData.detail.text);
                 };
             } else {
                 btnMore.style.display = 'none';
             }
 
+            // 顯示動畫
             box.style.display = 'block';
+            // 強制重繪以觸發 transition
+            requestAnimationFrame(() => {
+                box.classList.add('active');
+            });
+            
             if (pointData.pos) focusOnPoint(pointData.pos);
         }
 
@@ -395,16 +436,13 @@
                 (gltf) => {
                     progressText.innerText = '100%';
                     loadingBar.style.width = '100%';
-                    setTimeout(() => {
-                        loadingScreen.style.opacity = '0';
-                        setTimeout(() => { loadingScreen.style.display = 'none'; }, 500);
-                    }, 500);
+                    setTimeout(() => { loadingScreen.style.opacity = '0'; setTimeout(() => loadingScreen.style.display = 'none', 500); }, 500);
 
                     loadedModel = gltf.scene;
                     const box = new THREE.Box3().setFromObject(loadedModel);
                     const size = box.getSize(new THREE.Vector3());
                     const scale = 0.6 / Math.max(size.x, size.y, size.z);
-                    loadedModel.position.sub(box.getCenter(new THREE.Vector3()));
+                    loadedModel.position.sub(box.getCenter(new THREE.Vector3())); // 居中
                     loadedModel.scale.multiplyScalar(scale);
                     scene.add(loadedModel);
 
@@ -442,19 +480,20 @@
                 document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 loadObject(obj);
-                new Tween(camera.position).to({ x: 1, y: 0.8, z: 1 }, 1000).start();
+                // 重置相機
+                new Tween(camera.position).to({ x: 1.2, y: 0.8, z: 1.2 }, 1000).start();
                 new Tween(controls.target).to({ x: 0, y: 0, z: 0 }, 1000).start();
             };
             document.getElementById('cat-' + obj.category).appendChild(btn);
         });
 
         document.getElementById('reset-btn').onclick = () => {
-            new Tween(camera.position).to({ x: 1, y: 0.8, z: 1 }, 800).easing(Easing.Back.Out).start();
+            new Tween(camera.position).to({ x: 1.2, y: 0.8, z: 1.2 }, 800).easing(Easing.Back.Out).start();
             new Tween(controls.target).to({ x: 0, y: 0, z: 0 }, 800).start();
             window.closeAllMessages();
         };
 
-        // 預設載入第一個
+        // 啟動
         document.querySelector('.model-btn').click();
 
         function animate() {
@@ -463,6 +502,7 @@
             controls.update();
             renderer.render(scene, camera);
 
+            // 更新標籤位置與連線
             const svg = document.getElementById('line-canvas');
             if(svg) svg.innerHTML = ''; 
             
@@ -475,21 +515,24 @@
                 item.div.style.display = 'block';
                 const screenX = (rawPos.x * 0.5 + 0.5) * window.innerWidth;
                 const screenY = (-(rawPos.y) * 0.5 + 0.5) * window.innerHeight;
-                const labelX = screenX + 40;
-                const labelY = screenY - 40;
-                item.div.style.left = `${labelX}px`;
-                item.div.style.top = `${labelY}px`;
+                item.div.style.left = `${screenX - 14}px`; // -14 是因為寬度 28px 的一半
+                item.div.style.top = `${screenY - 14}px`;
 
-                if (svg) {
-                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                    line.setAttribute('x1', screenX); line.setAttribute('y1', screenY);
-                    line.setAttribute('x2', labelX + 14); line.setAttribute('y2', labelY + 14);
-                    line.setAttribute('stroke', 'rgba(255,255,255,0.5)'); line.setAttribute('stroke-width', '1');
-                    svg.appendChild(line);
-                    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                    dot.setAttribute('cx', screenX); dot.setAttribute('cy', screenY);
-                    dot.setAttribute('r', '3'); dot.setAttribute('fill', 'var(--primary)');
-                    svg.appendChild(dot);
+                // 當選單開啟時，畫線連接標籤和選單 (視覺強化)
+                const box = document.getElementById('message-box');
+                if (box.classList.contains('active') && item.div.innerText === document.getElementById('msg-title').innerText.split(' ')[0]) {
+                     if (svg) {
+                        const boxRect = box.getBoundingClientRect();
+                        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        line.setAttribute('x1', screenX); 
+                        line.setAttribute('y1', screenY);
+                        line.setAttribute('x2', boxRect.left); 
+                        line.setAttribute('y2', boxRect.top + 50);
+                        line.setAttribute('stroke', 'var(--primary)'); 
+                        line.setAttribute('stroke-width', '2');
+                        line.setAttribute('stroke-dasharray', '5,5'); // 虛線效果
+                        svg.appendChild(line);
+                     }
                 }
             });
         }
