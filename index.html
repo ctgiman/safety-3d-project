@@ -3,17 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智慧工安互動教學系統 v1.0</title>
+    <title>智慧工安互動教學系統 v2.0 (語音版)</title>
     <style>
         :root { --primary: #3498db; --accent: #e67e22; --bg: #1a1a1a; --panel: rgba(30, 30, 30, 0.95); }
         body { margin: 0; font-family: 'Microsoft JhengHei', sans-serif; background: #000; color: white; overflow: hidden; }
         
-        #container { 
-            position: relative; width: 100vw; height: 100vh; display: flex; 
-            overflow: hidden; 
-        }
+        #container { position: relative; width: 100vw; height: 100vh; display: flex; overflow: hidden; }
 
-        /* === 優化後的載入畫面 === */
+        /* 載入畫面 */
         #loading-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: #111; z-index: 9999;
@@ -25,22 +22,15 @@
             border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite;
             margin-bottom: 20px;
         }
-        .loading-bar-container {
-            width: 200px; height: 6px; background: #333; border-radius: 3px; overflow: hidden; margin-top: 10px;
-        }
-        #loading-bar {
-            width: 0%; height: 100%; background: var(--primary); transition: width 0.2s;
-        }
+        .loading-bar-container { width: 200px; height: 6px; background: #333; border-radius: 3px; overflow: hidden; margin-top: 10px; }
+        #loading-bar { width: 0%; height: 100%; background: var(--primary); transition: width 0.2s; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* 指引線畫布 */
-        #line-canvas {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 50;
-        }
+        /* SVG 線條層 */
+        #line-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
 
-        /* 左側：部位清單 */
-        #left-panel { position: absolute; left: 20px; top: 100px; width: 240px; z-index: 100; pointer-events: none; }
+        /* 左側清單 */
+        #left-panel { position: absolute; left: 20px; top: 80px; width: 240px; z-index: 100; pointer-events: none; }
         .part-item {
             pointer-events: auto; background: var(--panel); border-left: 4px solid var(--primary);
             padding: 12px 15px; margin-bottom: 8px; cursor: pointer; border-radius: 0 5px 5px 0;
@@ -50,7 +40,7 @@
         .part-item:hover { background: var(--primary); color: white; transform: translateX(5px); }
         .part-index { background: rgba(255,255,255,0.2); border-radius: 50%; width: 20px; height: 20px; text-align: center; line-height: 20px; margin-right: 10px; font-size: 12px; }
 
-        /* 右側：選單 */
+        /* 右側選單 */
         #right-panel {
             position: absolute; right: 0; top: 0; bottom: 0; width: 280px;
             background: var(--panel); border-left: 1px solid #444; padding: 20px;
@@ -59,18 +49,21 @@
         .category-title { color: #888; font-size: 12px; text-transform: uppercase; margin: 20px 0 10px; border-bottom: 1px solid #444; padding-bottom: 5px; }
         .model-btn {
             width: 100%; padding: 12px; margin-bottom: 10px; background: #333; border: none;
-            color: white; text-align: left; cursor: pointer; border-radius: 5px; transition: 0.3s;
-            border-left: 3px solid transparent;
+            color: white; text-align: left; cursor: pointer; border-radius: 5px; transition: 0.3s; border-left: 3px solid transparent;
         }
         .model-btn:hover { background: #444; }
         .model-btn.active { background: #2c3e50; border-left: 3px solid var(--primary); font-weight: bold; }
 
-        #reset-btn {
-            width: 100%; padding: 12px; background: var(--accent); color: white; border: none;
-            border-radius: 5px; cursor: pointer; font-weight: bold; margin-bottom: 20px; transition: 0.3s;
-            display: flex; justify-content: center; align-items: center; gap: 8px;
+        /* 功能按鈕區 */
+        .control-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        #reset-btn, #sound-btn {
+            flex: 1; padding: 12px; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.3s;
+            display: flex; justify-content: center; align-items: center; gap: 5px;
         }
+        #reset-btn { background: var(--accent); }
         #reset-btn:hover { background: #d35400; }
+        #sound-btn { background: #27ae60; }
+        #sound-btn.muted { background: #7f8c8d; }
 
         /* 3D 標籤 */
         .annotation {
@@ -78,12 +71,11 @@
             background: rgba(255, 61, 0, 0.9); border: 2px solid #ffffff; border-radius: 50%;
             color: white; font-weight: bold; text-align: center; line-height: 24px;
             font-size: 14px; box-shadow: 0 0 15px rgba(255, 61, 0, 0.6);
-            cursor: pointer; z-index: 1000; pointer-events: auto;
-            transition: transform 0.2s;
+            cursor: pointer; z-index: 1000; pointer-events: auto; transition: transform 0.2s;
         }
         .annotation:hover { transform: scale(1.2); background: #ff5722; }
 
-        /* 第一層資訊彈窗 */
+        /* 彈窗 */
         #message-box {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             width: 420px; max-width: 90vw; background: rgba(20, 20, 20, 0.98);
@@ -91,9 +83,7 @@
             z-index: 2000; display: none; box-shadow: 0 0 40px rgba(0,0,0,0.8);
             animation: fadeIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
         }
-        #msg-img-container {
-            width: 100%; height: 220px; background: #000; position: relative; display: none; border-bottom: 1px solid #333;
-        }
+        #msg-img-container { width: 100%; height: 220px; background: #000; display: none; border-bottom: 1px solid #333; }
         #msg-img { width: 100%; height: 100%; object-fit: contain; display: block; }
         .msg-body { padding: 25px; }
         #msg-title { margin-top: 0; color: var(--primary); font-size: 24px; border-bottom: 1px solid #444; padding-bottom: 12px; margin-bottom: 15px; }
@@ -105,9 +95,8 @@
             color: white; border: none; border-radius: 5px; cursor: pointer;
             font-size: 14px; font-weight: bold; transition: 0.2s;
         }
-        #btn-more-info:hover { opacity: 0.9; transform: translateY(-2px); }
 
-        /* 第二層詳細構造彈窗 */
+        /* 構造詳情彈窗 */
         #message-box-level2 {
             position: absolute; top: 55%; left: 55%; transform: translate(-50%, -50%);
             width: 380px; max-width: 85vw; background: #222; border: 1px solid var(--accent);
@@ -124,22 +113,17 @@
         }
         .close-btn:hover { background: #c0392b; }
 
-        /* 操作提示與 Debug 工具 */
-        #controls-hint {
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            color: rgba(255,255,255,0.5); font-size: 12px; pointer-events: none;
-            text-align: center;
-        }
-        #debug-tool {
-            position: absolute; bottom: 10px; left: 10px;
-            background: rgba(0,0,0,0.8); border: 1px solid #00ff00; color: #00ff00;
-            padding: 10px; font-family: monospace; font-size: 11px; z-index: 300;
-        }
-
         @keyframes fadeIn {
             from { opacity: 0; transform: translate(-50%, -45%) scale(0.95); }
             to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
         }
+        
+        /* 播放動畫指示器 */
+        .speaking-indicator {
+            display: inline-block; width: 10px; height: 10px; background: #00ff00; border-radius: 50%;
+            animation: pulse 1s infinite; margin-left: 10px; display: none;
+        }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -147,9 +131,7 @@
     <div id="loading-screen">
         <div class="spinner"></div>
         <p>系統資源加載中... <span id="progress-text">0%</span></p>
-        <div class="loading-bar-container">
-            <div id="loading-bar"></div>
-        </div>
+        <div class="loading-bar-container"><div id="loading-bar"></div></div>
     </div>
 
     <div id="container">
@@ -163,15 +145,14 @@
         </div>
 
         <div id="right-panel">
-            <button id="reset-btn">
-                <span>🏠</span> 重置視角 / 全覽
-            </button>
-            <h2 style="margin:0 0 10px 0; font-size: 20px;">工安器材庫</h2>
-            <p style="color:#666; font-size:12px; margin-bottom:20px;">選擇模型以開始互動教學</p>
+            <div class="control-group">
+                <button id="reset-btn">🏠 重置</button>
+                <button id="sound-btn">🔊 語音: 開</button>
+            </div>
             
+            <h2 style="margin:0 0 10px 0; font-size: 20px;">工安器材庫</h2>
             <div class="category-title">防護具類</div>
             <div id="cat-ppe"></div>
-            
             <div class="category-title">消防器材類</div>
             <div id="cat-fire"></div>
         </div>
@@ -179,17 +160,13 @@
         <div id="canvas-wrapper" style="flex: 1; width: 100%; height: 100%;"></div>
         <div id="labels-container"></div>
 
-        <div id="controls-hint">
-            左鍵：旋轉場景 | 右鍵：平移 | 滾輪：縮放
-        </div>
-
         <div id="message-box">
             <button class="close-btn" onclick="closeAllMessages()">✕</button>
             <div id="msg-img-container">
-                <img id="msg-img" src="" alt="部位圖片" onerror="this.style.display='none'">
+                <img id="msg-img" src="" alt="部位圖片">
             </div>
             <div class="msg-body">
-                <h3 id="msg-title">標題</h3>
+                <h3 id="msg-title">標題 <span class="speaking-indicator" id="speaking-icon"></span></h3>
                 <p id="msg-content">內容描述...</p>
                 <button id="btn-more-info">🔍 查看詳細構造原理</button>
             </div>
@@ -198,17 +175,8 @@
         <div id="message-box-level2">
             <button class="close-btn" onclick="this.parentElement.style.display='none'">✕</button>
             <h3 id="msg-title-2" style="margin-top:0; color:var(--accent); border-bottom:1px solid #555; padding-bottom:10px;">詳細構造</h3>
-            <img id="msg-img-2" src="" style="width:100%; border-radius:5px; margin:10px 0; display:none;" onerror="this.style.display='none'">
+            <img id="msg-img-2" src="" style="width:100%; border-radius:5px; margin:10px 0; display:none;">
             <p id="msg-content-2" style="color:#ddd; line-height:1.6; font-size:14px; margin:0;">更多細節...</p>
-        </div>
-
-        <div id="debug-tool">
-            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                <strong>座標偵測器</strong>
-                <button onclick="this.parentElement.style.display='none'" style="cursor:pointer; font-size:10px;">關閉</button>
-            </div>
-            <span id="coord-output" style="color:#fff;">點擊模型任意處獲取座標</span>
-            <div style="color:#888; font-size:10px; margin-top:5px;">(將座標複製到代碼 points 中)</div>
         </div>
     </div>
 
@@ -222,17 +190,14 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { Tween, Easing, update as updateTween } from 'https://unpkg.com/@tweenjs/tween.js@23.1.1/dist/tween.esm.js';
 
-        /* * ==========================================
-         * 1. 數據中心 (DATA CENTER)
-         * 在這裡新增或修改你的模型與檢查點
-         * ==========================================
-         */
+        // ★★★ 這裡我把圖片換成了網路預設圖 (Via.placeholder)，避免你本地沒有圖片會報錯 ★★★
+        // 等你確認好本地 images 資料夾後，把網址改回 "./images/gauge.jpg" 即可
         const allData = [
             {
                 id: "helmet",
                 category: "ppe",
                 name: "工程安全帽",
-                file: "./models/model3.glb", // 確保檔案路徑正確
+                file: "./models/model3.glb",
                 points: [
                     { title: "帽殼狀態", text: "檢查是否有龜裂或遭受撞擊之白化痕跡。若有受損應立即更換。", pos: { x: 0.007, y: 0.249, z: -0.028 } },
                     { title: "頤帶扣環", text: "確認扣環是否牢固，無斷裂痕跡。工作時必須扣好。", pos: { x: 0.105, y: -0.101, z: -0.016 } },
@@ -242,40 +207,40 @@
             {
                 id: "extinguisher",
                 category: "fire",
-                name: "乾粉滅火器 (完整版)",
-                file: "./models/fireextinguisher.glb", // 確保檔案路徑正確
+                name: "乾粉滅火器",
+                file: "./models/fireextinguisher.glb",
                 points: [
                     { 
                         title: "1. 壓力錶 (Pressure Gauge)", 
-                        text: "【檢查重點】：指針是否位於綠色區塊。\n● 綠色：壓力正常。\n● 黃色/紅色：壓力異常，需送修。", 
-                        img: "./images/gauge.jpg", 
+                        text: "檢查重點：指針必須位於綠色區塊。綠色代表壓力正常，黃色或紅色代表異常，需要送修。", 
+                        img: "https://via.placeholder.com/400x300?text=Pressure+Gauge", // 暫時用網路圖
                         pos: { x: -0.005, y: 0.208, z: 0.054 },
                         detail: {
-                            title: "壓力錶運作原理",
-                            text: "內部使用波登管(Bourdon tube)構造。當內部氮氣壓力足夠時，會推動銅管連動齒輪，將指針推至綠區。若受潮生鏽，指針可能卡死造成誤判，故需定期輕敲檢查。",
-                            img: "./images/gauge_detail.jpg" // 如果沒有圖片可留空
+                            title: "壓力錶構造",
+                            text: "內部使用波登管(Bourdon tube)構造。當氣體壓力進入時，銅管拉直帶動指針。受潮可能導致指針卡死。",
+                            img: "https://via.placeholder.com/400x300?text=Inside+Structure"
                         }
                     },
                     { 
                         title: "2. 安全插梢 (Safety Pin)", 
-                        text: "【檢查重點】：\n1. 插梢是否變形或脫落？\n2. 鉛封(封條)是否完整未斷裂？\n若鉛封斷裂，視為已被使用或誤觸。", 
-                        img: "./images/pin.jpg", 
+                        text: "檢查重點：確認插梢是否變形，以及鉛封是否完整。若鉛封斷裂，代表可能已被使用過。", 
+                        img: "https://via.placeholder.com/400x300?text=Safety+Pin",
                         pos: { x: 0.031, y: 0.232, z: 0.022 } 
                     },
                     { 
-                        title: "3. 皮管與噴嘴 (Hose & Nozzle)", 
-                        text: "【檢查重點】：\n拿起皮管彎折檢查，確認無龜裂、老化脆化。\n檢查噴嘴口有無異物(如泥蜂築巢)堵塞。", 
-                        img: "./images/nozzle.jpg",
+                        title: "3. 皮管與噴嘴", 
+                        text: "檢查重點：拿起皮管彎折檢查，確認無龜裂、老化。並檢查噴嘴口有無異物堵塞。", 
+                        img: "https://via.placeholder.com/400x300?text=Hose+Nozzle",
                         pos: { x: -0.068, y: -0.067, z: -0.052 } 
                     },
                     {
-                        title: "4. 壓把 (Handle)",
-                        text: "【檢查重點】：\n確認壓把無變形、生鏽卡死。\n使用時需用力壓下上方壓把以釋放藥劑。",
-                        pos: { x: 0.085, y: 0.237, z: 0.069 } // 若座標不準確請用 Debug 工具校正
+                        title: "4. 壓把測試",
+                        text: "檢查重點：確認壓把無變形、生鏽卡死。使用時需用力壓下以釋放藥劑。",
+                        pos: { x: 0.085, y: 0.237, z: 0.069 }
                     },
                     { 
-                        title: "5. 瓶身狀態 (Cylinder Body)", 
-                        text: "【檢查重點】：\n檢視瓶身底部與焊接處，有無嚴重生鏽或腐蝕。\n鏽蝕嚴重之鋼瓶在加壓時有爆裂風險，應強制報廢。", 
+                        title: "5. 瓶身狀態", 
+                        text: "檢查重點：檢視瓶身底部與焊接處，有無嚴重生鏽。鏽蝕嚴重之鋼瓶有爆裂風險。", 
                         pos: { x: 0.063, y: -0.109, z: 0.031 } 
                     },
                     {
@@ -287,70 +252,79 @@
             }
         ];
 
-        /* ========================================== */
+        // 語音設定
+        let isSoundOn = true;
+        const synth = window.speechSynthesis;
 
+        // 切換語音按鈕
+        const soundBtn = document.getElementById('sound-btn');
+        soundBtn.onclick = () => {
+            isSoundOn = !isSoundOn;
+            if(isSoundOn) {
+                soundBtn.innerText = "🔊 語音: 開";
+                soundBtn.classList.remove('muted');
+            } else {
+                soundBtn.innerText = "🔇 語音: 關";
+                soundBtn.classList.add('muted');
+                synth.cancel(); // 立即停止說話
+            }
+        };
+
+        function speakText(text) {
+            if (!isSoundOn) return;
+            synth.cancel(); // 打斷上一句
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'zh-TW'; // 設定中文
+            utterance.rate = 1.0; // 語速
+            
+            const icon = document.getElementById('speaking-icon');
+            utterance.onstart = () => { icon.style.display = 'inline-block'; };
+            utterance.onend = () => { icon.style.display = 'none'; };
+            
+            synth.speak(utterance);
+        }
+
+        /* Three.js 初始化 */
         let loadedModel = null;
         const labelElements = [];
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x1a1a1a); // 深灰背景比較有質感
+        scene.background = new THREE.Color(0x1a1a1a);
 
-        // 初始化相機
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
         camera.position.set(1, 0.8, 1);
 
-        // 初始化渲染器
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // 優化效能
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.2;
         document.getElementById('canvas-wrapper').appendChild(renderer.domElement);
 
-        // 軌道控制器
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
 
-        // 燈光設置
         scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-        const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
-        mainLight.position.set(5, 10, 7);
-        scene.add(mainLight);
-        const backLight = new THREE.DirectionalLight(0xffffff, 0.5);
-        backLight.position.set(-5, 5, -5);
-        scene.add(backLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        dirLight.position.set(5, 10, 7);
+        scene.add(dirLight);
 
         const loader = new GLTFLoader();
 
-        // 全域函數供 HTML 按鈕呼叫
         window.closeAllMessages = () => {
             document.getElementById('message-box').style.display = 'none';
             document.getElementById('message-box-level2').style.display = 'none';
+            synth.cancel(); // 關閉視窗時停止說話
         };
 
-        // 核心功能：鏡頭移動
         function focusOnPoint(targetPos) {
             const target = new THREE.Vector3(targetPos.x, targetPos.y, targetPos.z);
-            
-            // 計算最佳攝影機位置 (避免太近)
             const offset = camera.position.clone().sub(controls.target).normalize().multiplyScalar(0.4); 
             const newCamPos = target.clone().add(offset);
-
-            // 確保相機Y軸不會太低
             if(newCamPos.y < target.y) newCamPos.y = target.y + 0.1;
 
-            new Tween(camera.position)
-                .to({ x: newCamPos.x, y: newCamPos.y, z: newCamPos.z }, 1000)
-                .easing(Easing.Cubic.Out)
-                .start();
-
-            new Tween(controls.target)
-                .to({ x: target.x, y: target.y, z: target.z }, 800)
-                .easing(Easing.Quadratic.Out)
-                .start();
+            new Tween(camera.position).to({ x: newCamPos.x, y: newCamPos.y, z: newCamPos.z }, 1000).easing(Easing.Cubic.Out).start();
+            new Tween(controls.target).to({ x: target.x, y: target.y, z: target.z }, 800).easing(Easing.Quadratic.Out).start();
         }
 
-        // 核心功能：顯示訊息
         function showMessage(pointData) {
             const box = document.getElementById('message-box');
             const imgTag = document.getElementById('msg-img');
@@ -359,18 +333,23 @@
             
             document.getElementById('message-box-level2').style.display = 'none';
 
-            document.getElementById('msg-title').innerText = pointData.title;
+            // 設定文字
+            document.getElementById('msg-title').innerHTML = pointData.title + ' <span class="speaking-indicator" id="speaking-icon"></span>';
             document.getElementById('msg-content').innerText = pointData.text;
 
-            // 圖片邏輯處理
+            // 觸發語音
+            speakText(pointData.title + "。" + pointData.text);
+
+            // 圖片處理 (增加 onerror 防止 404 破圖)
             if (pointData.img && pointData.img !== "") {
                 imgTag.src = pointData.img;
+                imgTag.onerror = function() { this.style.display='none'; imgContainer.style.display='none'; };
                 imgContainer.style.display = 'block';
+                imgTag.style.display = 'block';
             } else {
                 imgContainer.style.display = 'none';
             }
 
-            // 詳細按鈕邏輯
             if (pointData.detail) {
                 btnMore.style.display = 'block';
                 btnMore.onclick = () => {
@@ -380,11 +359,13 @@
                     const img2 = document.getElementById('msg-img-2');
                     if (pointData.detail.img) { 
                         img2.src = pointData.detail.img; 
-                        img2.style.display = 'block'; 
+                        img2.style.display = 'block';
+                        img2.onerror = function() { this.style.display='none'; };
                     } else { 
                         img2.style.display = 'none'; 
                     }
                     box2.style.display = 'block';
+                    speakText("補充說明：" + pointData.detail.text); // 詳細內容也朗讀
                 };
             } else {
                 btnMore.style.display = 'none';
@@ -394,19 +375,16 @@
             if (pointData.pos) focusOnPoint(pointData.pos);
         }
 
-        // 核心功能：載入模型
         function loadObject(data) {
             const loadingScreen = document.getElementById('loading-screen');
             const progressText = document.getElementById('progress-text');
             const loadingBar = document.getElementById('loading-bar');
             
-            // 重置載入畫面
             loadingScreen.style.opacity = '1';
             loadingScreen.style.display = 'flex';
             progressText.innerText = '0%';
             loadingBar.style.width = '0%';
 
-            // 清理舊場景
             if (loadedModel) scene.remove(loadedModel);
             document.getElementById('labels-container').innerHTML = "";
             document.getElementById('parts-list').innerHTML = "";
@@ -415,172 +393,107 @@
 
             loader.load(data.file, 
                 (gltf) => {
-                    // 載入成功：強制顯示 100%
                     progressText.innerText = '100%';
                     loadingBar.style.width = '100%';
-                    
                     setTimeout(() => {
                         loadingScreen.style.opacity = '0';
                         setTimeout(() => { loadingScreen.style.display = 'none'; }, 500);
-                    }, 500); // 停留 0.5秒
+                    }, 500);
 
                     loadedModel = gltf.scene;
-                    
-                    // 自動縮放模型至適當大小
                     const box = new THREE.Box3().setFromObject(loadedModel);
-                    const center = box.getCenter(new THREE.Vector3());
                     const size = box.getSize(new THREE.Vector3());
-                    const maxDim = Math.max(size.x, size.y, size.z);
-                    const scale = 0.6 / maxDim; // 設定標準大小為 0.6 單位
-                    
-                    loadedModel.position.sub(center); // 歸零
+                    const scale = 0.6 / Math.max(size.x, size.y, size.z);
+                    loadedModel.position.sub(box.getCenter(new THREE.Vector3()));
                     loadedModel.scale.multiplyScalar(scale);
-                    
                     scene.add(loadedModel);
 
-                    // 生成標籤與清單
                     data.points.forEach((p, i) => {
-                        // 左側清單
                         const item = document.createElement('div');
                         item.className = 'part-item';
                         item.innerHTML = `<span class="part-index">${i+1}</span> ${p.title}`;
                         item.onclick = () => showMessage(p);
                         document.getElementById('parts-list').appendChild(item);
 
-                        // 3D 空間標籤
                         const label = document.createElement('div');
                         label.className = 'annotation';
                         label.innerText = i + 1;
                         label.onclick = (e) => { e.stopPropagation(); showMessage(p); };
-                        
-                        // 滑鼠懸停效果 (選用)
-                        label.onmouseenter = () => { document.body.style.cursor = 'pointer'; };
-                        label.onmouseleave = () => { document.body.style.cursor = 'default'; };
-
                         document.getElementById('labels-container').appendChild(label);
                         labelElements.push({ div: label, pos: new THREE.Vector3(p.pos.x, p.pos.y, p.pos.z) });
                     });
                 },
                 (xhr) => {
-                    // 載入進度計算 (限制在 0-100)
                     if (xhr.lengthComputable && xhr.total > 0) {
                         const percent = Math.min(100, Math.round((xhr.loaded / xhr.total) * 100));
                         progressText.innerText = percent + '%';
                         loadingBar.style.width = percent + '%';
                     }
                 },
-                (error) => {
-                    console.error('載入錯誤:', error);
-                    progressText.innerText = '載入失敗';
-                }
+                (error) => { console.error('Error:', error); progressText.innerText = '載入失敗'; }
             );
         }
 
-        // 初始化選單按鈕
         allData.forEach(obj => {
             const btn = document.createElement('button');
             btn.className = 'model-btn';
             btn.innerText = obj.name;
-            btn.dataset.id = obj.id;
             btn.onclick = () => {
                 document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 loadObject(obj);
-                // 重置鏡頭位置
                 new Tween(camera.position).to({ x: 1, y: 0.8, z: 1 }, 1000).start();
                 new Tween(controls.target).to({ x: 0, y: 0, z: 0 }, 1000).start();
             };
             document.getElementById('cat-' + obj.category).appendChild(btn);
         });
 
-        // 點擊重置按鈕
         document.getElementById('reset-btn').onclick = () => {
             new Tween(camera.position).to({ x: 1, y: 0.8, z: 1 }, 800).easing(Easing.Back.Out).start();
             new Tween(controls.target).to({ x: 0, y: 0, z: 0 }, 800).start();
             window.closeAllMessages();
         };
 
-        // 啟動預設模型 (這裡設定預設開啟滅火器)
-        const defaultModel = document.querySelector(`button[data-id="extinguisher"]`);
-        if(defaultModel) defaultModel.click();
+        // 預設載入第一個
+        document.querySelector('.model-btn').click();
 
-        // Debug 工具：點擊模型獲取座標
-        window.addEventListener('mousedown', (event) => {
-            if (!loadedModel || event.button !== 0) return; // 只接受左鍵
-            
-            // 避免點到 UI 時觸發
-            if (event.target.closest('#left-panel') || event.target.closest('#right-panel') || event.target.closest('.annotation')) return;
-
-            const mouse = new THREE.Vector2((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
-            const raycaster = new THREE.Raycaster();
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObject(loadedModel, true);
-            
-            if (intersects.length > 0) {
-                const p = intersects[0].point;
-                // 格式化輸出
-                const str = `pos: { x: ${p.x.toFixed(3)}, y: ${p.y.toFixed(3)}, z: ${p.z.toFixed(3)} }`;
-                document.getElementById('coord-output').innerText = str;
-                // 在 Console 也印出方便複製
-                console.log(str); 
-            }
-        });
-
-        // 動畫迴圈
         function animate() {
             requestAnimationFrame(animate);
             updateTween();
             controls.update();
             renderer.render(scene, camera);
 
-            // 更新標籤位置與連線
             const svg = document.getElementById('line-canvas');
             if(svg) svg.innerHTML = ''; 
             
             labelElements.forEach(item => {
-                const rawPos = item.pos.clone().project(camera); // 3D轉2D螢幕座標
-                
-                // 檢查是否在相機背面 (z > 1)
+                const rawPos = item.pos.clone().project(camera);
                 if (rawPos.z > 1 || Math.abs(rawPos.x) > 1.1 || Math.abs(rawPos.y) > 1.1) {
                     item.div.style.display = 'none';
                     return;
-                } else {
-                    item.div.style.display = 'block';
                 }
-
+                item.div.style.display = 'block';
                 const screenX = (rawPos.x * 0.5 + 0.5) * window.innerWidth;
                 const screenY = (-(rawPos.y) * 0.5 + 0.5) * window.innerHeight;
-
-                // 標籤偏移邏輯 (讓標籤飄在點的右上方)
                 const labelX = screenX + 40;
                 const labelY = screenY - 40;
-
                 item.div.style.left = `${labelX}px`;
                 item.div.style.top = `${labelY}px`;
 
-                // 繪製 SVG 連線
                 if (svg) {
                     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                    line.setAttribute('x1', screenX); 
-                    line.setAttribute('y1', screenY);
-                    line.setAttribute('x2', labelX + 14); // +14 是因為標籤寬度的一半
-                    line.setAttribute('y2', labelY + 14);
-                    line.setAttribute('stroke', 'rgba(255,255,255,0.5)');
-                    line.setAttribute('stroke-width', '1');
+                    line.setAttribute('x1', screenX); line.setAttribute('y1', screenY);
+                    line.setAttribute('x2', labelX + 14); line.setAttribute('y2', labelY + 14);
+                    line.setAttribute('stroke', 'rgba(255,255,255,0.5)'); line.setAttribute('stroke-width', '1');
                     svg.appendChild(line);
-                    
-                    // 畫一個小圓點在物體上
                     const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                    dot.setAttribute('cx', screenX);
-                    dot.setAttribute('cy', screenY);
-                    dot.setAttribute('r', '3');
-                    dot.setAttribute('fill', 'var(--primary)');
+                    dot.setAttribute('cx', screenX); dot.setAttribute('cy', screenY);
+                    dot.setAttribute('r', '3'); dot.setAttribute('fill', 'var(--primary)');
                     svg.appendChild(dot);
                 }
             });
         }
         animate();
-
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
@@ -589,4 +502,3 @@
     </script>
 </body>
 </html>
-
