@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智慧工安互動教學系統 v1.5</title>
+    <title>智慧工安互動教學系統 v1.51</title>
     <style>
         :root { --primary: #3498db; --accent: #e67e22; --bg: #1a1a1a; --panel: rgba(30, 30, 30, 0.95); }
         body { margin: 0; font-family: 'Microsoft JhengHei', sans-serif; background: #000; color: white; overflow: hidden; }
@@ -282,7 +282,10 @@
                         title: "1. 壓力錶 (Pressure Gauge)", 
                         text: "檢查重點：指針必須位於綠色區塊。綠色代表壓力正常，黃色或紅色代表異常，需要送修。", 
                         img: "./images/gauge.jpg", // 暫時用網路圖
-                        pos: { x: -0.005, y: 0.208, z: 0.054 },
+                        pos: {"x":-0.006,"y":0.234,"z":0.062},
+                        view: {
+                        cam: {"x":-0.17,"y":0.288,"z":0.35},
+                        target: {"x":0.062,"y":0.201,"z":0.033}
                         detail: {
                             title: "壓力錶構造",
                             text: "內部使用波登管(Bourdon tube)構造。當氣體壓力進入時，銅管拉直帶動指針。受潮可能導致指針卡死。",
@@ -293,13 +296,19 @@
                         title: "2. 安全插梢 (Safety Pin)", 
                         text: "檢查重點：確認插梢是否變形，以及鉛封是否完整。若鉛封斷裂，代表可能已被使用過。", 
                         img: "./images/pin.jpg",
-                        pos: { x: 0.031, y: 0.232, z: 0.022 } 
+                        pos: {"x":0.039,"y":0.271,"z":0.021}, 
+                        view: {
+                        cam: {"x":0.297,"y":0.428,"z":-0.25},
+                        target: {"x":0.026,"y":0.238,"z":-0.025}
                     },
                     { 
                         title: "3. 皮管與噴嘴", 
                         text: "檢查重點：拿起皮管彎折檢查，確認無龜裂、老化。並檢查噴嘴口有無異物堵塞。", 
                         img: "./images/Nozzle.jpg",
-                        pos: { x: -0.068, y: -0.067, z: -0.052 } 
+                        pos: {"x":-0.082,"y":-0.08,"z":-0.058},
+                        view: {
+                        cam: {"x":-0.444,"y":0.109,"z":0.02},
+                        target: {"x":-0.091,"y":-0.079,"z":-0.007}
                     },
                     {
                         title: "4. 壓把測試",
@@ -313,12 +322,18 @@
                     { 
                         title: "5. 瓶身狀態", 
                         text: "檢查重點：檢視瓶身底部與焊接處，有無嚴重生鏽。鏽蝕嚴重之鋼瓶有爆裂風險。", 
-                        pos: { x: 0.063, y: -0.109, z: 0.031 } 
+                        pos: {"x":0.054,"y":-0.149,"z":0.02},
+                        view: {
+                        cam: {"x":0.393,"y":-0.112,"z":0.258},
+                        target: {"x":0.071,"y":-0.128,"z":0.021}
                     },
                     {
                         title: "6. 合格標籤 (Label)",
                         text: "【檢查重點】：\n確認「下次檢查日期」或「藥劑有效期限」。\n每三年應進行水壓測試檢驗。",
-                        pos: { x: -0.044, y: -0.093, z: 0.061 }
+                        pos: {"x":-0.043,"y":-0.094,"z":0.062},
+                        view: {
+                        cam: {"x":-0.214,"y":-0.023,"z":0.333},
+                        target: {"x":0.023,"y":-0.143,"z":0.034}
                     }
                 ]
             }
@@ -709,6 +724,7 @@ window.addEventListener('mousedown', (event) => {
     </script>
 </body>
 </html>
+
 
 
 
