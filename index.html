@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智慧工安互動教學系統 v1.53</title>
+    <title>智慧工安互動教學系統 v1.54</title>
     <style>
         :root { --primary: #3498db; --accent: #e67e22; --bg: #1a1a1a; --panel: rgba(30, 30, 30, 0.95); }
         body { margin: 0; font-family: 'Microsoft JhengHei', sans-serif; background: #000; color: white; overflow: hidden; }
@@ -316,6 +316,7 @@
                     {
                         title: "4. 壓把測試",
                         text: "檢查重點：確認壓把無變形、生鏽卡死。使用時需用力壓下以釋放藥劑。",
+                        img: "./images/444123.jpg",
                         pos: {"x":0.076,"y":0.231,"z":0.078},
                         view: {
                         cam: {"x":-0.017,"y":0.31,"z":0.377},
@@ -325,6 +326,7 @@
                     { 
                         title: "5. 瓶身狀態", 
                         text: "檢查重點：檢視瓶身底部與焊接處，有無嚴重生鏽。鏽蝕嚴重之鋼瓶有爆裂風險。", 
+                        img: "./images/555123.jpg",
                         pos: {"x":0.054,"y":-0.149,"z":0.02},
                         view: {
                         cam: {"x":0.393,"y":-0.112,"z":0.258},
@@ -332,13 +334,19 @@
                      }
                     },
                     {
-                        title: "6. 合格標籤 (Label)",
+                        title: "6. 檢查清單",
                         text: "【檢查重點】：\n確認「下次檢查日期」或「藥劑有效期限」。\n每三年應進行水壓測試檢驗。",
+                        img: "./images/666123.jpg",
                         pos: {"x":-0.043,"y":-0.094,"z":0.062},
                         view: {
                         cam: {"x":-0.214,"y":-0.023,"z":0.333},
                         target: {"x":0.023,"y":-0.143,"z":0.034}
-                     }
+                     },
+                        detail: {
+                            title: "合格標籤(Label)",
+                            text: "滅火器通過內政部委託機構的「型式認可」和「個別認可」後，會貼有銀色的「個別檢驗合格」貼紙。",
+                            img: "./images/6661231.jpg"
+                        }
                     }
                 ]
             }
@@ -729,6 +737,7 @@ window.addEventListener('mousedown', (event) => {
     </script>
 </body>
 </html>
+
 
 
 
