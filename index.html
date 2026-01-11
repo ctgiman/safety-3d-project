@@ -203,15 +203,47 @@
             <p id="msg-content-2" style="color:#ddd; line-height:1.6; font-size:14px; margin:0;">更多細節...</p>
         </div>
 
-        <div id="debug-tool">
-            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                <strong>座標偵測器</strong>
-                <button onclick="this.parentElement.style.display='none'" style="cursor:pointer; font-size:10px;">關閉</button>
-            </div>
-            <span id="coord-output" style="color:#fff;">點擊模型任意處獲取座標</span>
-            <div style="color:#888; font-size:10px; margin-top:5px;">(將座標複製到代碼 points 中)</div>
-        </div>
+       <div id="debug-tool"
+     style="
+        position:absolute;
+        bottom:20px;
+        left:20px;
+        background:rgba(0,0,0,0.85);
+        border:1px solid #f1c40f;
+        color:#f1c40f;
+        padding:12px;
+        font-family:monospace;
+        font-size:11px;
+        z-index:500;
+        width:260px;
+        border-radius:8px;
+     ">
+
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <strong>🎯 視角 / 座標工具</strong>
+        <button id="close-debug"
+                style="cursor:pointer; font-size:10px;">✕</button>
     </div>
+
+    <div style="margin-top:8px; color:#fff;" id="debug-output">
+        點擊模型取得座標與視角
+    </div>
+
+    <button id="copy-debug"
+            style="
+                width:100%;
+                margin-top:8px;
+                padding:6px;
+                background:#f1c40f;
+                color:#000;
+                border:none;
+                cursor:pointer;
+                font-weight:bold;
+            ">
+        📋 複製點位 + 黃金視角
+    </button>
+</div>
+
 
     <script type="importmap">
         { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
@@ -505,27 +537,83 @@
         const defaultModel = document.querySelector(`button[data-id="extinguisher"]`);
         if(defaultModel) defaultModel.click();
 
-        // Debug 工具：點擊模型獲取座標
-        window.addEventListener('mousedown', (event) => {
-            if (!loadedModel || event.button !== 0) return; // 只接受左鍵
-            
-            // 避免點到 UI 時觸發
-            if (event.target.closest('#left-panel') || event.target.closest('#right-panel') || event.target.closest('.annotation')) return;
+        // ===== 視角 / 座標整合工具 =====
+let lastDebugData = null;
 
-            const mouse = new THREE.Vector2((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
-            const raycaster = new THREE.Raycaster();
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObject(loadedModel, true);
-            
-            if (intersects.length > 0) {
-                const p = intersects[0].point;
-                // 格式化輸出
-                const str = `pos: { x: ${p.x.toFixed(3)}, y: ${p.y.toFixed(3)}, z: ${p.z.toFixed(3)} }`;
-                document.getElementById('coord-output').innerText = str;
-                // 在 Console 也印出方便複製
-                console.log(str); 
-            }
-        });
+// 關閉工具
+document.getElementById('close-debug').onclick = () => {
+    document.getElementById('debug-tool').style.display = 'none';
+};
+
+// 複製資料
+document.getElementById('copy-debug').onclick = () => {
+    if (!lastDebugData) return;
+
+    navigator.clipboard.writeText(lastDebugData);
+    alert('已複製點位與黃金視角');
+};
+
+// 點擊模型取得座標 + 視角
+window.addEventListener('mousedown', (event) => {
+    if (!loadedModel || event.button !== 0) return;
+
+    if (
+        event.target.closest('#left-panel') ||
+        event.target.closest('#right-panel') ||
+        event.target.closest('.annotation')
+    ) return;
+
+    const mouse = new THREE.Vector2(
+        (event.clientX / window.innerWidth) * 2 - 1,
+        -(event.clientY / window.innerHeight) * 2 + 1
+    );
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObject(loadedModel, true);
+
+    if (hits.length === 0) return;
+
+    const p = hits[0].point;
+
+    const pos = {
+        x: +p.x.toFixed(3),
+        y: +p.y.toFixed(3),
+        z: +p.z.toFixed(3)
+    };
+
+    const cam = {
+        x: +camera.position.x.toFixed(3),
+        y: +camera.position.y.toFixed(3),
+        z: +camera.position.z.toFixed(3)
+    };
+
+    const target = {
+        x: +controls.target.x.toFixed(3),
+        y: +controls.target.y.toFixed(3),
+        z: +controls.target.z.toFixed(3)
+    };
+
+    const output = `
+{
+  title: "新檢查點",
+  text: "請補上說明",
+  pos: ${JSON.stringify(pos)},
+  view: {
+    cam: ${JSON.stringify(cam)},
+    target: ${JSON.stringify(target)}
+  }
+}
+`.trim();
+
+    document.getElementById('debug-output').innerText =
+        `pos: ${JSON.stringify(pos)}\ncam: ${JSON.stringify(cam)}\ntarget: ${JSON.stringify(target)}`;
+
+    lastDebugData = output;
+
+    document.getElementById('debug-tool').style.display = 'block';
+});
+
 
         // 動畫迴圈
         function animate() {
@@ -590,5 +678,6 @@
     </script>
 </body>
 </html>
+
 
 
