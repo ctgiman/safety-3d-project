@@ -129,6 +129,12 @@
             position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
             color: rgba(255,255,255,0.5); font-size: 12px; pointer-events: none;
             text-align: center;
+            
+   <div id="camera-live-pos" style="position:fixed; bottom:80px; left:10px; background:rgba(0,0,0,0.8); color:#00ffff; padding:10px; font-family:monospace; font-size:12px; z-index:9999; border:1px solid #00ffff; pointer-events:none;">
+        🎬 攝影機位置 (lookFrom): <br>
+        <span id="cam-xyz-display">x: 0, y: 0, z: 0</span>
+    </div>
+            
         }
         #debug-tool {
             position: absolute; bottom: 10px; left: 10px;
@@ -533,6 +539,12 @@
             controls.update();
             renderer.render(scene, camera);
 
+            // --- 新增：即時抓取相機座標並顯示在網頁上 ---
+            const cp = camera.position;
+            const displayStr = `x: ${cp.x.toFixed(3)}, y: ${cp.y.toFixed(3)}, z: ${cp.z.toFixed(3)}`;
+            document.getElementById('cam-xyz-display').innerText = displayStr;
+            // ---------------------------------------
+
             // 更新標籤位置與連線
             const svg = document.getElementById('line-canvas');
             if(svg) svg.innerHTML = ''; 
@@ -589,3 +601,4 @@
     </script>
 </body>
 </html>
+
